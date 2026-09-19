@@ -1,0 +1,190 @@
+/* offer-coach 基础样式 —— Day 7 骨架版，只求可用不求美观（PRD 第五节：文字优先） */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: #f5f6f8;
+  color: #2b2f36;
+  line-height: 1.6;
+}
+
+/* 顶栏 */
+.site-header {
+  background: #ffffff;
+  border-bottom: 1px solid #e3e6ea;
+  padding: 20px 24px 14px;
+}
+.site-title { font-size: 26px; color: #1a5fb4; }
+.site-sub { color: #6b7280; font-size: 14px; margin-top: 2px; }
+
+.site-nav { margin-top: 12px; display: flex; gap: 18px; }
+.nav-item { font-size: 15px; color: #6b7280; padding-bottom: 4px; }
+.nav-item.is-active { color: #1a5fb4; font-weight: bold; border-bottom: 2px solid #1a5fb4; }
+.nav-item.is-disabled { color: #c3c8cf; }
+
+/* 主体 */
+.main { max-width: 960px; margin: 0 auto; padding: 24px; }
+.intro { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
+
+/* 岗位卡片 */
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.job-card {
+  display: block;
+  background: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: inherit;
+}
+.job-card:hover { border-color: #1a5fb4; }
+.job-card h2 { font-size: 17px; color: #1a5fb4; }
+.job-card .job-intro { font-size: 14px; margin-top: 6px; }
+.job-card .job-meta { font-size: 12px; color: #9aa1ab; margin-top: 10px; }
+
+.noscript-tip { color: #b45309; }
+
+/* 页脚 */
+.site-footer {
+  text-align: center;
+  color: #9aa1ab;
+  font-size: 12px;
+  padding: 24px 0 32px;
+}
+
+/* ---- 详情页（Day 7 步骤 2c）---- */
+.back-link { font-size: 13px; color: #6b7280; text-decoration: none; display: inline-block; margin-bottom: 8px; }
+.back-link:hover { color: #1a5fb4; }
+
+.job-duty { font-size: 14px; color: #4b5563; margin-bottom: 14px; }
+.progress-count { font-size: 13px; color: #6b7280; margin-bottom: 10px; }
+
+.skill-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.skill-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 8px;
+  padding: 10px 12px; cursor: pointer;
+}
+.skill-item:hover { border-color: #1a5fb4; }
+.skill-item input[type="checkbox"] { margin-top: 4px; width: 16px; height: 16px; }
+.skill-text { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+.skill-text small { width: 100%; color: #9aa1ab; }
+
+.stage-badge {
+  font-size: 11px; padding: 1px 8px; border-radius: 10px;
+  background: #eef1f5; color: #6b7280;
+}
+.stage-basic { background: #e1f5ee; color: #0f6e56; }
+.stage-mid { background: #e6f1fb; color: #185fa5; }
+.stage-adv { background: #fdeee0; color: #b45309; }
+
+.save-status { font-size: 12px; min-height: 18px; margin: 8px 0 14px; }
+.save-status.is-ok { color: #0f6e56; }
+.save-status.is-bad { color: #b91c1c; }
+
+.btn-disabled {
+  display: inline-block; padding: 8px 16px; border-radius: 8px;
+  border: 1px solid #e3e6ea; background: #f0f1f3; color: #9aa1ab;
+  font-size: 14px; cursor: not-allowed;
+}
+.error-tip { color: #b91c1c; font-size: 14px; }
+.loading-tip { color: #9aa1ab; font-size: 14px; }
+
+/* ---- 我的进度页（Day 7 步骤 2d）---- */
+.panel {
+  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
+  padding: 18px 20px; margin-bottom: 16px;
+}
+.panel-title { font-size: 17px; margin-bottom: 6px; }
+.panel-tip { font-size: 13px; color: #9aa1ab; margin-bottom: 12px; }
+
+.form-row { display: flex; gap: 8px; }
+.text-input {
+  flex: 1; padding: 8px 12px; font-size: 14px;
+  border: 1px solid #d3d7dd; border-radius: 8px; outline: none;
+}
+.text-input:focus { border-color: #1a5fb4; }
+.btn-primary {
+  padding: 8px 20px; font-size: 14px; border: none; border-radius: 8px;
+  background: #1a5fb4; color: #fff; cursor: pointer;
+}
+.btn-primary:hover { background: #164d92; }
+.analyze-link { display: inline-block; text-decoration: none; }
+.form-msg { font-size: 12px; min-height: 18px; margin: 8px 0; }
+.form-msg.is-ok { color: #0f6e56; }
+.form-msg.is-bad { color: #b91c1c; }
+.form-msg a { color: #1a5fb4; }
+.form-msg a:hover { text-decoration: underline; }
+
+.chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #eef1f5; border-radius: 14px; padding: 4px 10px; font-size: 13px;
+}
+.chip-empty { color: #9aa1ab; font-size: 13px; }
+.chip-del {
+  border: none; background: none; color: #9aa1ab; font-size: 14px;
+  cursor: pointer; padding: 0 2px;
+}
+.chip-del:hover { color: #b91c1c; }
+
+.mastered-list { display: flex; flex-direction: column; gap: 8px; }
+.mastered-item {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  border: 1px solid #eef1f5; border-radius: 8px; padding: 8px 12px; font-size: 14px;
+}
+.mastered-item small { width: 100%; color: #9aa1ab; }
+.stage-custom { background: #e9d5ff; color: #6d28d9; }
+
+/* ---- 差距分析页（Day 7 步骤 2e）---- */
+.analyze-panel {
+  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
+  padding: 18px 20px; margin-bottom: 18px;
+}
+.field-label { display: block; font-size: 14px; font-weight: bold; margin: 6px 0; }
+.or-sep { text-align: center; color: #9aa1ab; font-size: 12px; margin: 10px 0; }
+.select-input {
+  width: 100%; padding: 8px 12px; font-size: 14px;
+  border: 1px solid #d3d7dd; border-radius: 8px; background: #fff;
+}
+.area-input {
+  width: 100%; min-height: 120px; padding: 10px 12px; font-size: 14px;
+  border: 1px solid #d3d7dd; border-radius: 8px; resize: vertical;
+  font-family: inherit; line-height: 1.6;
+}
+.area-input:focus, .select-input:focus { border-color: #1a5fb4; outline: none; }
+
+.summary-line { font-size: 14px; margin-bottom: 12px; }
+.result-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.result-col {
+  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
+  padding: 14px 16px;
+}
+.result-col h3 {
+  font-size: 15px; padding-bottom: 8px; margin-bottom: 10px;
+  border-bottom: 2px solid #eef1f5;
+}
+.col-have h3 { color: #0f6e56; border-color: #e1f5ee; }
+.col-gap h3 { color: #b91c1c; border-color: #fde8e8; }
+.col-plan h3 { color: #1a5fb4; border-color: #e6f1fb; }
+.result-item {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-size: 13px; padding: 4px 0;
+}
+.result-order { color: #9aa1ab; min-width: 18px; }
+.result-note {
+  width: 100%; font-size: 12px; color: #9aa1ab; line-height: 1.5;
+}
+.col-plan .result-note { padding-left: 24px; }
+.result-empty { font-size: 13px; color: #9aa1ab; }
+
+@media (max-width: 720px) {
+  .result-grid { grid-template-columns: 1fr; }
+}

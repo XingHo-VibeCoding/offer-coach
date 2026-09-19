@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>差距分析｜Offer 教练</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="back-link" href="index.html">← 返回岗位清单</a>
+    <h1 class="site-title">差距分析</h1>
+    <p class="site-sub">选一个预设岗位，或粘贴任意招聘软件上的岗位描述</p>
+    <nav class="site-nav">
+      <a class="nav-item" href="index.html">首页</a>
+      <a class="nav-item" href="profile.html">我的进度</a>
+      <span class="nav-item is-active">差距分析</span>
+    </nav>
+  </header>
+
+  <main class="main">
+    <section class="analyze-panel">
+      <label class="field-label" for="job-select">入口一：选一个预设岗位</label>
+      <select id="job-select" class="select-input">
+        <option value="">— 选择岗位 —</option>
+      </select>
+
+      <p class="or-sep">或</p>
+
+      <label class="field-label" for="jd-input">入口二：粘贴任意岗位描述（招聘软件上复制文字，或系统截图提字后粘贴）</label>
+      <textarea id="jd-input" class="area-input" placeholder="把岗位描述（职位要求部分）粘贴到这里…"></textarea>
+      <p class="panel-tip">说明：本期用关键词匹配，只能识别「技能总表 + 你的自定义技能」里有的名字；描述里其他技能暂时认不出来（第 15 天接入 AI 能力后解决）。</p>
+
+      <button id="analyze-btn" class="btn-primary" type="button">开始分析</button>
+      <p id="form-msg" class="form-msg"></p>
+    </section>
+
+    <section id="result-root"></section>
+  </main>
+
+  <footer class="site-footer">offer-coach · Day 7 骨架版</footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/analyze.js"></script>
+</body>
+</html>
