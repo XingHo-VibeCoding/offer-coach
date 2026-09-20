@@ -4,7 +4,7 @@
 
 body {
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-  background: #f5f6f8;
+  background: #eef0f4;
   color: #2b2f36;
   line-height: 1.6;
 }
@@ -28,6 +28,12 @@ body {
 .nav-item:hover { border-color: #1a5fb4; background: #f0f6ff; }
 .nav-item.is-active { background: #1a5fb4; border-color: #1a5fb4; color: #ffffff; font-weight: bold; }
 
+/* Day 9：键盘 Tab 聚焦时给可见焦点框（只用键盘导航的用户也能看清焦点在哪） */
+a:focus-visible, button:focus-visible,
+.text-input:focus-visible, .select-input:focus-visible, .area-input:focus-visible {
+  outline: 2px solid #1a5fb4; outline-offset: 2px;
+}
+
 /* 主体 */
 .main { max-width: 960px; margin: 0 auto; padding: 24px; }
 .intro { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
@@ -36,14 +42,14 @@ body {
 .job-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 .job-card {
   display: block;
   background: #ffffff;
   border: 1px solid #e3e6ea;
   border-radius: 10px;
-  padding: 16px 18px;
+  padding: 16px 20px;
   text-decoration: none;
   color: inherit;
   overflow-wrap: break-word; /* 长单词/长链接不把卡片撑破 */
@@ -52,7 +58,7 @@ body {
 /* Day 8：拉开三档层级，让卡片更好扫描——岗位名大、介绍中、元信息小 */
 .job-card h2 { font-size: 18px; color: #1a5fb4; }
 .job-card .job-intro { font-size: 14px; color: #4b5563; margin-top: 6px; }
-.job-card .job-meta { font-size: 12px; color: #9aa1ab; margin-top: 10px; }
+.job-card .job-meta { font-size: 12px; color: #6b7280; margin-top: 10px; }
 
 /* Day 8：四种页面状态的提示样式（加载中/空/错误共用一套骨架） */
 .state-tip {
@@ -89,7 +95,7 @@ body {
 .skill-item:hover { border-color: #1a5fb4; }
 .skill-item input[type="checkbox"] { margin-top: 4px; width: 16px; height: 16px; }
 .skill-text { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
-.skill-text small { width: 100%; color: #9aa1ab; }
+.skill-text small { width: 100%; color: #6b7280; }
 
 .stage-badge {
   font-size: 11px; padding: 1px 8px; border-radius: 10px;
@@ -99,7 +105,7 @@ body {
 .stage-mid { background: #e6f1fb; color: #185fa5; }
 .stage-adv { background: #fdeee0; color: #b45309; }
 
-.save-status { font-size: 12px; min-height: 18px; margin: 8px 0 14px; }
+.save-status { font-size: 13px; min-height: 18px; margin: 8px 0 14px; }
 .save-status.is-ok { color: #0f6e56; }
 .save-status.is-bad { color: #b91c1c; }
 
@@ -114,10 +120,10 @@ body {
 /* ---- 我的进度页（Day 7 步骤 2d）---- */
 .panel {
   background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
-  padding: 18px 20px; margin-bottom: 16px;
+  padding: 16px 20px; margin-bottom: 16px;
 }
-.panel-title { font-size: 17px; margin-bottom: 6px; }
-.panel-tip { font-size: 13px; color: #9aa1ab; margin-bottom: 12px; }
+.panel-title { font-size: 18px; margin-bottom: 6px; }
+.panel-tip { font-size: 13px; color: #6b7280; margin-bottom: 12px; }
 
 .form-row { display: flex; gap: 8px; }
 .text-input {
@@ -131,7 +137,7 @@ body {
 }
 .btn-primary:hover { background: #164d92; }
 .analyze-link { display: inline-block; text-decoration: none; }
-.form-msg { font-size: 12px; min-height: 18px; margin: 8px 0; }
+.form-msg { font-size: 13px; min-height: 18px; margin: 8px 0; }
 .form-msg.is-ok { color: #0f6e56; }
 .form-msg.is-bad { color: #b91c1c; }
 .form-msg a { color: #1a5fb4; }
@@ -142,7 +148,7 @@ body {
   display: inline-flex; align-items: center; gap: 4px;
   background: #eef1f5; border-radius: 14px; padding: 4px 10px; font-size: 13px;
 }
-.chip-empty { color: #9aa1ab; font-size: 13px; }
+.chip-empty { color: #6b7280; font-size: 13px; }
 .chip-del {
   border: none; background: none; color: #9aa1ab; font-size: 14px;
   cursor: pointer; padding: 0 2px;
@@ -154,13 +160,13 @@ body {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   border: 1px solid #eef1f5; border-radius: 8px; padding: 8px 12px; font-size: 14px;
 }
-.mastered-item small { width: 100%; color: #9aa1ab; }
+.mastered-item small { width: 100%; color: #6b7280; }
 .stage-custom { background: #e9d5ff; color: #6d28d9; }
 
 /* ---- 差距分析页（Day 7 步骤 2e）---- */
 .analyze-panel {
   background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
-  padding: 18px 20px; margin-bottom: 18px;
+  padding: 16px 20px; margin-bottom: 16px;
 }
 .field-label { display: block; font-size: 14px; font-weight: bold; margin: 6px 0; }
 .or-sep { text-align: center; color: #9aa1ab; font-size: 12px; margin: 10px 0; }
@@ -173,15 +179,15 @@ body {
   border: 1px solid #d3d7dd; border-radius: 8px; resize: vertical;
   font-family: inherit; line-height: 1.6;
 }
-.area-input:focus, .select-input:focus { border-color: #1a5fb4; outline: none; }
+.area-input:focus, .select-input:focus { border-color: #1a5fb4; }
 
 .summary-line { font-size: 14px; margin-bottom: 12px; }
 .result-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
 }
 .result-col {
   background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
-  padding: 14px 16px;
+  padding: 16px;
 }
 .result-col h3 {
   font-size: 15px; padding-bottom: 8px; margin-bottom: 10px;
@@ -196,10 +202,10 @@ body {
 }
 .result-order { color: #9aa1ab; min-width: 18px; }
 .result-note {
-  width: 100%; font-size: 12px; color: #9aa1ab; line-height: 1.5;
+  width: 100%; font-size: 12px; color: #6b7280; line-height: 1.5;
 }
 .col-plan .result-note { padding-left: 24px; }
-.result-empty { font-size: 13px; color: #9aa1ab; }
+.result-empty { font-size: 13px; color: #6b7280; }
 
 /* Day 8：手机宽度——纵向堆叠、缩边距、导航换行不溢出 */
 @media (max-width: 720px) {
@@ -210,4 +216,10 @@ body {
   .nav-item { font-size: 14px; padding: 6px 14px; }
   .job-grid { grid-template-columns: 1fr; }
   .result-grid { grid-template-columns: 1fr; }
+}
+
+/* Day 9：极窄屏（<480px）表单行上下堆叠，输入框和按钮不再互相挤压 */
+@media (max-width: 480px) {
+  .form-row { flex-direction: column; }
+  .form-row .btn-primary { width: 100%; }
 }
