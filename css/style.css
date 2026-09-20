@@ -18,10 +18,15 @@ body {
 .site-title { font-size: 26px; color: #1a5fb4; }
 .site-sub { color: #6b7280; font-size: 14px; margin-top: 2px; }
 
-.site-nav { margin-top: 12px; display: flex; gap: 18px; }
-.nav-item { font-size: 15px; color: #6b7280; padding-bottom: 4px; }
-.nav-item.is-active { color: #1a5fb4; font-weight: bold; border-bottom: 2px solid #1a5fb4; }
-.nav-item.is-disabled { color: #c3c8cf; }
+.site-nav { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+/* Day 8：导航从灰色小字改成胶囊按钮，一眼能看出可点和当前所在页 */
+.nav-item {
+  font-size: 15px; padding: 7px 18px; border-radius: 18px;
+  color: #1a5fb4; background: #ffffff; border: 1px solid #c9d7ec;
+  text-decoration: none;
+}
+.nav-item:hover { border-color: #1a5fb4; background: #f0f6ff; }
+.nav-item.is-active { background: #1a5fb4; border-color: #1a5fb4; color: #ffffff; font-weight: bold; }
 
 /* 主体 */
 .main { max-width: 960px; margin: 0 auto; padding: 24px; }
@@ -41,11 +46,22 @@ body {
   padding: 16px 18px;
   text-decoration: none;
   color: inherit;
+  overflow-wrap: break-word; /* 长单词/长链接不把卡片撑破 */
 }
-.job-card:hover { border-color: #1a5fb4; }
-.job-card h2 { font-size: 17px; color: #1a5fb4; }
-.job-card .job-intro { font-size: 14px; margin-top: 6px; }
+.job-card:hover { border-color: #1a5fb4; box-shadow: 0 2px 8px rgba(26, 95, 180, 0.12); }
+/* Day 8：拉开三档层级，让卡片更好扫描——岗位名大、介绍中、元信息小 */
+.job-card h2 { font-size: 18px; color: #1a5fb4; }
+.job-card .job-intro { font-size: 14px; color: #4b5563; margin-top: 6px; }
 .job-card .job-meta { font-size: 12px; color: #9aa1ab; margin-top: 10px; }
+
+/* Day 8：四种页面状态的提示样式（加载中/空/错误共用一套骨架） */
+.state-tip {
+  grid-column: 1 / -1; /* 在网格里横跨整行 */
+  font-size: 14px; color: #6b7280; line-height: 1.6;
+  background: #ffffff; border: 1px dashed #d3d7dd; border-radius: 10px;
+  padding: 18px 20px;
+}
+.state-error { color: #b91c1c; background: #fff7f7; border-color: #f3c1c1; }
 
 .noscript-tip { color: #b45309; }
 
@@ -185,6 +201,13 @@ body {
 .col-plan .result-note { padding-left: 24px; }
 .result-empty { font-size: 13px; color: #9aa1ab; }
 
+/* Day 8：手机宽度——纵向堆叠、缩边距、导航换行不溢出 */
 @media (max-width: 720px) {
+  .site-header { padding: 16px 16px 12px; }
+  .main { padding: 16px; }
+  .site-title { font-size: 22px; }
+  .site-nav { gap: 8px; }
+  .nav-item { font-size: 14px; padding: 6px 14px; }
+  .job-grid { grid-template-columns: 1fr; }
   .result-grid { grid-template-columns: 1fr; }
 }

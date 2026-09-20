@@ -22,8 +22,10 @@
       <p>下面是本期收录的 8 个技术岗位。点进任一岗位，查看它需要哪些技能并勾选你已掌握的。</p>
     </section>
 
-    <!-- 岗位卡片由 js/app.js 从 js/data.js 渲染 -->
-    <section id="job-list" class="job-grid" aria-label="岗位清单"></section>
+    <!-- 岗位卡片由 js/app.js 从 js/data.js 渲染；下面是加载态占位，渲染成功后会被替换 -->
+    <section id="job-list" class="job-grid" aria-label="岗位清单">
+      <p class="state-tip state-loading">正在加载岗位数据…</p>
+    </section>
 
     <noscript>
       <p class="noscript-tip">本页面需要开启 JavaScript 才能显示岗位清单。</p>
