@@ -28,9 +28,17 @@
   document.getElementById("job-title").textContent = job.name;
   document.getElementById("job-intro").textContent = job.intro || "";
 
-  var required = job.requiredSkills || [];
   var skillIndex = {};
   (window.SKILLS || []).forEach(function (s) { skillIndex[s.name] = s; });
+
+  // Day 10 修复①：技能清单按学习阶段从低到高排（基础→进阶→高级），同阶段保持原有先后
+  var required = (job.requiredSkills || []).slice(); // slice 拷贝一份，不污染原始数据
+  var stageRank = { "基础": 0, "进阶": 1, "高级": 2 };
+  required.sort(function (a, b) {
+    var sa = skillIndex[a] && skillIndex[a].stage ? stageRank[skillIndex[a].stage] : 1;
+    var sb = skillIndex[b] && skillIndex[b].stage ? stageRank[skillIndex[b].stage] : 1;
+    return sa - sb;
+  });
 
   // ---- 3. 渲染技能清单（可勾选）----
   var listEl = document.createElement("div");
