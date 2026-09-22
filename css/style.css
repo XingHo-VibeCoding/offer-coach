@@ -3,44 +3,45 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-  background: #eef0f4;
-  color: #2b2f36;
-  line-height: 1.6;
+  font-family: system-ui, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: #faf9f7;
+  color: #292524;
+  line-height: 1.65;
 }
 
 /* 顶栏 */
 .site-header {
-  background: #ffffff;
-  border-bottom: 1px solid #e3e6ea;
+  background: #faf9f7;
+  border-bottom: 1px solid #eee9e2;
   padding: 20px 24px 14px;
 }
-.site-title { font-size: 26px; color: #1a5fb4; }
+.site-title { font-size: 26px; color: #3b6fd4; }
 .site-sub { color: #6b7280; font-size: 14px; margin-top: 2px; }
 
 .site-nav { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
 /* Day 8：导航从灰色小字改成胶囊按钮，一眼能看出可点和当前所在页 */
 .nav-item {
-  font-size: 15px; padding: 7px 18px; border-radius: 18px;
-  color: #1a5fb4; background: #ffffff; border: 1px solid #c9d7ec;
+  font-size: 15px; padding: 7px 18px; border-radius: 999px;
+  color: #57534e; background: transparent; border: 1px solid #e0dacf;
   text-decoration: none;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
 }
-.nav-item:hover { border-color: #1a5fb4; background: #f0f6ff; }
-.nav-item.is-active { background: #1a5fb4; border-color: #1a5fb4; color: #ffffff; font-weight: bold; }
+.nav-item:hover { border-color: #c9c2b4; background: #f3f1ec; }
+.nav-item.is-active { background: #292524; border-color: #292524; color: #ffffff; font-weight: bold; }
 
 /* Day 9：键盘 Tab 聚焦时给可见焦点框（只用键盘导航的用户也能看清焦点在哪） */
 a:focus-visible, button:focus-visible,
 .text-input:focus-visible, .select-input:focus-visible, .area-input:focus-visible {
-  outline: 2px solid #1a5fb4; outline-offset: 2px;
+  outline: 2px solid #3b6fd4; outline-offset: 2px;
 }
 
 /* Day 11 交互C：复制清单按钮 */
 .copy-btn {
-  font-size: 12px; color: #1a5fb4; background: #f0f6ff;
-  border: 1px solid #c9d7ec; border-radius: 999px;
+  font-size: 12px; color: #3b6fd4; background: #eef4ff;
+  border: 1px solid #d8e2f5; border-radius: 999px;
   padding: 3px 12px; margin-bottom: 8px; cursor: pointer;
 }
-.copy-btn:hover { border-color: #1a5fb4; }
+.copy-btn:hover { border-color: #3b6fd4; }
 .copy-btn.is-ok { color: #0f6e56; background: #e8f6f1; border-color: #a9d8c6; }
 
 /* Day 11 交互B：已掌握数字弹跳（勾选触发） */
@@ -72,16 +73,23 @@ a:focus-visible, button:focus-visible,
 .job-card {
   display: block;
   background: #ffffff;
-  border: 1px solid #e3e6ea;
-  border-radius: 10px;
-  padding: 16px 20px;
+  border: none;
+  border-radius: 16px;
+  /* 双层阴影：第一层贴地定形，第二层弥散浮起——比单层更真实 */
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.06), 0 8px 24px rgba(41, 37, 36, 0.07);
+  padding: 18px 22px;
   text-decoration: none;
   color: inherit;
   overflow-wrap: break-word; /* 长单词/长链接不把卡片撑破 */
+  transition: transform .18s ease, box-shadow .18s ease;
 }
-.job-card:hover { border-color: #1a5fb4; box-shadow: 0 2px 8px rgba(26, 95, 180, 0.12); }
+.job-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(41, 37, 36, 0.07), 0 14px 32px rgba(41, 37, 36, 0.12);
+}
 /* Day 8：拉开三档层级，让卡片更好扫描——岗位名大、介绍中、元信息小 */
-.job-card h2 { font-size: 18px; color: #1a5fb4; }
+/* 微打磨：标题字距 */
+.job-card h2 { font-size: 18px; color: #3b6fd4; letter-spacing: 0.5px; }
 .job-card .job-intro { font-size: 14px; color: #4b5563; margin-top: 6px; }
 .job-card .job-meta { font-size: 12px; color: #6b7280; margin-top: 10px; }
 
@@ -89,8 +97,8 @@ a:focus-visible, button:focus-visible,
 .state-tip {
   grid-column: 1 / -1; /* 在网格里横跨整行 */
   font-size: 14px; color: #6b7280; line-height: 1.6;
-  background: #ffffff; border: 1px dashed #d3d7dd; border-radius: 10px;
-  padding: 18px 20px;
+  background: #ffffff; border: 1px dashed #e0dacf; border-radius: 16px;
+  padding: 18px 22px;
 }
 .state-error { color: #b91c1c; background: #fff7f7; border-color: #f3c1c1; }
 
@@ -106,7 +114,7 @@ a:focus-visible, button:focus-visible,
 
 /* ---- 详情页（Day 7 步骤 2c）---- */
 .back-link { font-size: 13px; color: #6b7280; text-decoration: none; display: inline-block; margin-bottom: 8px; }
-.back-link:hover { color: #1a5fb4; }
+.back-link:hover { color: #3b6fd4; }
 
 .job-duty { font-size: 14px; color: #4b5563; margin-bottom: 14px; }
 .progress-count { font-size: 13px; color: #6b7280; margin-bottom: 10px; }
@@ -114,17 +122,22 @@ a:focus-visible, button:focus-visible,
 .skill-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .skill-item {
   display: flex; align-items: flex-start; gap: 10px;
-  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 8px;
-  padding: 10px 12px; cursor: pointer;
+  background: #ffffff; border: none; border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.04), 0 3px 10px rgba(41, 37, 36, 0.05);
+  padding: 10px 14px; cursor: pointer;
+  transition: box-shadow .15s ease, transform .15s ease;
 }
-.skill-item:hover { border-color: #1a5fb4; }
+.skill-item:hover {
+  box-shadow: 0 1px 3px rgba(41, 37, 36, 0.05), 0 6px 16px rgba(41, 37, 36, 0.09);
+  transform: translateY(-1px);
+}
 .skill-item input[type="checkbox"] { margin-top: 4px; width: 16px; height: 16px; }
 .skill-text { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
 .skill-text small { width: 100%; color: #6b7280; }
 
 .stage-badge {
   font-size: 11px; padding: 1px 8px; border-radius: 10px;
-  background: #eef1f5; color: #6b7280;
+  background: #f1efe9; color: #6b7280;
 }
 .stage-basic { background: #e1f5ee; color: #0f6e56; }
 .stage-mid { background: #e6f1fb; color: #185fa5; }
@@ -135,8 +148,8 @@ a:focus-visible, button:focus-visible,
 .save-status.is-bad { color: #b91c1c; }
 
 .btn-disabled {
-  display: inline-block; padding: 8px 16px; border-radius: 8px;
-  border: 1px solid #e3e6ea; background: #f0f1f3; color: #9aa1ab;
+  display: inline-block; padding: 8px 16px; border-radius: 999px;
+  border: 1px solid #e7e2da; background: #f0efec; color: #9c968c;
   font-size: 14px; cursor: not-allowed;
 }
 .error-tip { color: #b91c1c; font-size: 14px; }
@@ -144,8 +157,9 @@ a:focus-visible, button:focus-visible,
 
 /* ---- 我的进度页（Day 7 步骤 2d）---- */
 .panel {
-  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
-  padding: 16px 20px; margin-bottom: 16px;
+  background: #ffffff; border: none; border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.05), 0 8px 24px rgba(41, 37, 36, 0.07);
+  padding: 18px 22px; margin-bottom: 16px;
 }
 .panel-title { font-size: 18px; margin-bottom: 6px; }
 .panel-tip { font-size: 13px; color: #6b7280; margin-bottom: 12px; }
@@ -153,25 +167,27 @@ a:focus-visible, button:focus-visible,
 .form-row { display: flex; gap: 8px; }
 .text-input {
   flex: 1; padding: 8px 12px; font-size: 14px;
-  border: 1px solid #d3d7dd; border-radius: 8px; outline: none;
+  border: 1px solid #e0dacf; border-radius: 10px; outline: none;
 }
-.text-input:focus { border-color: #1a5fb4; }
+.text-input:focus { border-color: #3b6fd4; }
 .btn-primary {
-  padding: 8px 20px; font-size: 14px; border: none; border-radius: 8px;
-  background: #1a5fb4; color: #fff; cursor: pointer;
+  padding: 8px 22px; font-size: 14px; border: none; border-radius: 999px;
+  background: #3b6fd4; color: #fff; cursor: pointer;
+  transition: background .15s ease, transform .15s ease;
 }
-.btn-primary:hover { background: #164d92; }
+.btn-primary:hover { background: #2f5cb8; }
+.btn-primary:active { transform: scale(.97); }
 .analyze-link { display: inline-block; text-decoration: none; }
 .form-msg { font-size: 13px; min-height: 18px; margin: 8px 0; }
 .form-msg.is-ok { color: #0f6e56; }
 .form-msg.is-bad { color: #b91c1c; }
-.form-msg a { color: #1a5fb4; }
+.form-msg a { color: #3b6fd4; }
 .form-msg a:hover { text-decoration: underline; }
 
 .chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   display: inline-flex; align-items: center; gap: 4px;
-  background: #eef1f5; border-radius: 14px; padding: 4px 10px; font-size: 13px;
+  background: #f1efe9; border-radius: 14px; padding: 4px 10px; font-size: 13px;
 }
 .chip-empty { color: #6b7280; font-size: 13px; }
 .chip-del {
@@ -183,44 +199,46 @@ a:focus-visible, button:focus-visible,
 .mastered-list { display: flex; flex-direction: column; gap: 8px; }
 .mastered-item {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  border: 1px solid #eef1f5; border-radius: 8px; padding: 8px 12px; font-size: 14px;
+  border: 1px solid #f0ede6; border-radius: 10px; padding: 8px 12px; font-size: 14px;
 }
 .mastered-item small { width: 100%; color: #6b7280; }
 .stage-custom { background: #e9d5ff; color: #6d28d9; }
 
 /* ---- 差距分析页（Day 7 步骤 2e）---- */
 .analyze-panel {
-  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
-  padding: 16px 20px; margin-bottom: 16px;
+  background: #ffffff; border: none; border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.05), 0 8px 24px rgba(41, 37, 36, 0.07);
+  padding: 18px 22px; margin-bottom: 16px;
 }
 .field-label { display: block; font-size: 14px; font-weight: bold; margin: 6px 0; }
 .or-sep { text-align: center; color: #9aa1ab; font-size: 12px; margin: 10px 0; }
 .select-input {
   width: 100%; padding: 8px 12px; font-size: 14px;
-  border: 1px solid #d3d7dd; border-radius: 8px; background: #fff;
+  border: 1px solid #e0dacf; border-radius: 10px; background: #fff;
 }
 .area-input {
   width: 100%; min-height: 120px; padding: 10px 12px; font-size: 14px;
-  border: 1px solid #d3d7dd; border-radius: 8px; resize: vertical;
+  border: 1px solid #e0dacf; border-radius: 10px; resize: vertical;
   font-family: inherit; line-height: 1.6;
 }
-.area-input:focus, .select-input:focus { border-color: #1a5fb4; }
+.area-input:focus, .select-input:focus { border-color: #3b6fd4; }
 
 .summary-line { font-size: 14px; margin-bottom: 12px; }
 .result-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
 }
 .result-col {
-  background: #ffffff; border: 1px solid #e3e6ea; border-radius: 10px;
-  padding: 16px;
+  background: #ffffff; border: none; border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.05), 0 8px 24px rgba(41, 37, 36, 0.07);
+  padding: 18px;
 }
 .result-col h3 {
   font-size: 15px; padding-bottom: 8px; margin-bottom: 10px;
-  border-bottom: 2px solid #eef1f5;
+  border-bottom: 2px solid #f0ede6;
 }
 .col-have h3 { color: #0f6e56; border-color: #e1f5ee; }
 .col-gap h3 { color: #b91c1c; border-color: #fde8e8; }
-.col-plan h3 { color: #1a5fb4; border-color: #e6f1fb; }
+.col-plan h3 { color: #3b6fd4; border-color: #e6f1fb; }
 .result-item {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
   font-size: 13px; padding: 4px 0;
