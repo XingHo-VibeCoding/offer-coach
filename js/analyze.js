@@ -167,6 +167,39 @@
         empty.textContent = col.cls === "col-gap" ? "全部达标，没有缺口 🎉" : "暂无内容";
         box.appendChild(empty);
       }
+      // Day 11 交互C：学习顺序一键复制（只在该栏有内容时出现）
+      if (col.cls === "col-plan" && col.items.length > 0) {
+        var copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "copy-btn";
+        copyBtn.textContent = "复制清单";
+        copyBtn.addEventListener("click", function () {
+          var lines = [sourceLabel + " · 建议学习顺序（" + col.items.length + " 项）"];
+          col.items.forEach(function (item, i) {
+            var note = skillNotes[item.name] ? "——" + skillNotes[item.name] : "";
+            lines.push((i + 1) + ". " + item.name + "（" + item.stage + "）" + note);
+          });
+          var revert = function () {
+            copyBtn.textContent = "复制清单";
+            copyBtn.classList.remove("is-ok");
+          };
+          var done = function () {
+            copyBtn.textContent = "✓ 已复制";
+            copyBtn.classList.add("is-ok");
+            setTimeout(revert, 2000);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(lines.join("\n")).then(done, function () {
+              copyBtn.textContent = "✗ 复制失败";
+              setTimeout(revert, 2000);
+            });
+          } else {
+            copyBtn.textContent = "✗ 浏览器不支持";
+            setTimeout(revert, 2000);
+          }
+        });
+        box.appendChild(copyBtn);
+      }
       col.items.forEach(function (item, idx) {
         var row = document.createElement("div");
         row.className = "result-item";
@@ -196,30 +229,56 @@
     });
 
     resultRoot.appendChild(grid);
+    // Day 11 交互A：结果淡入（is-fresh 由 CSS 定义动画；节点每次重建，动画自然重新触发）
+    resultRoot.classList.add("is-fresh");
   }
 
+  // Day 11 交互A：按钮「分析中…」状态 + 防连点 + 结果淡入
+  var analyzing = false;
+
   btn.addEventListener("click", function () {
+    if (analyzing) return; // 连点保护：分析进行中忽略后续点击
+
+    // 校验类错误（没选岗位/粘贴太短）直接提示，不进「分析中」状态
     var jd = jdInput.value.trim();
     if (jd && jd.length < 20) {
       setMsg("请粘贴完整的岗位描述再分析（目前 " + jd.length + " 字，至少 20 字）", false);
       return;
     }
-    if (jd) {
-      var reqs = window.AnalyzeLogic.analyzeJD(jd);
-      if (reqs.length === 0) {
-        setMsg("没有从这段文字里认出技能要求，请检查内容或换个岗位试试", false);
-        return;
+    if (!jd && !select.value) {
+      setMsg("请先选择一个岗位，或粘贴岗位描述", false);
+      return;
+    }
+
+    // 进入分析中状态
+    analyzing = true;
+    btn.disabled = true;
+    btn.classList.add("is-loading");
+    var originalText = btn.textContent;
+    btn.textContent = "分析中…";
+
+    setTimeout(function () {
+      try {
+        if (jd) {
+          var reqs = window.AnalyzeLogic.analyzeJD(jd);
+          if (reqs.length === 0) {
+            setMsg("没有从这段文字里认出技能要求，请检查内容或换个岗位试试", false);
+            return;
+          }
+          setMsg("分析完成（粘贴的岗位描述）", true);
+          renderResult("粘贴的岗位描述", reqs);
+          return;
+        }
+        var job = (window.JOBS || []).filter(function (j) { return j.name === select.value; })[0];
+        setMsg("分析完成（预设岗位：" + job.name + "）", true);
+        renderResult("预设岗位「" + job.name + "」", window.AnalyzeLogic.analyzePreset(job));
+      } finally {
+        // 无论成败都恢复按钮，绝不让它卡在「分析中…」
+        analyzing = false;
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+        btn.textContent = originalText;
       }
-      setMsg("分析完成（粘贴的岗位描述）", true);
-      renderResult("粘贴的岗位描述", reqs);
-      return;
-    }
-    if (select.value) {
-      var job = (window.JOBS || []).filter(function (j) { return j.name === select.value; })[0];
-      setMsg("分析完成（预设岗位：" + job.name + "）", true);
-      renderResult("预设岗位「" + job.name + "」", window.AnalyzeLogic.analyzePreset(job));
-      return;
-    }
-    setMsg("请先选择一个岗位，或粘贴岗位描述", false);
+    }, 400);
   });
 })();

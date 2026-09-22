@@ -58,8 +58,14 @@
     return n;
   }
 
-  function refreshCount() {
+  function refreshCount(pop) {
     countEl.textContent = "已掌握 " + masteredCount() + " / " + required.length + " 项（勾选自动保存到本浏览器）";
+    // Day 11 交互B：勾选时数字弹一下，强化「保存成功」的即时反馈
+    if (pop) {
+      countEl.classList.remove("count-pop");
+      void countEl.offsetWidth; // 强制重排：让动画在连续勾选时也能重新触发
+      countEl.classList.add("count-pop");
+    }
   }
 
   required.forEach(function (skillName) {
@@ -77,7 +83,7 @@
         ? "✓ 已保存（" + new Date().toLocaleTimeString() + "）"
         : "✗ 保存失败：浏览器存储不可用";
       statusEl.className = "save-status " + (ok ? "is-ok" : "is-bad");
-      refreshCount();
+      refreshCount(true);
     });
 
     var text = document.createElement("span");

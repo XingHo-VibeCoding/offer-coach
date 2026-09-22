@@ -34,6 +34,31 @@ a:focus-visible, button:focus-visible,
   outline: 2px solid #1a5fb4; outline-offset: 2px;
 }
 
+/* Day 11 交互C：复制清单按钮 */
+.copy-btn {
+  font-size: 12px; color: #1a5fb4; background: #f0f6ff;
+  border: 1px solid #c9d7ec; border-radius: 999px;
+  padding: 3px 12px; margin-bottom: 8px; cursor: pointer;
+}
+.copy-btn:hover { border-color: #1a5fb4; }
+.copy-btn.is-ok { color: #0f6e56; background: #e8f6f1; border-color: #a9d8c6; }
+
+/* Day 11 交互B：已掌握数字弹跳（勾选触发） */
+@keyframes oc-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); color: #0f6e56; }
+  100% { transform: scale(1); }
+}
+.progress-count.count-pop { animation: oc-pop .3s ease-out; display: inline-block; }
+
+/* Day 11 交互A：分析按钮「分析中」状态 + 结果淡入 */
+.btn-primary:disabled, .btn-primary.is-loading { opacity: .55; cursor: wait; }
+@keyframes oc-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.result-root.is-fresh > * { animation: oc-fade-in .35s ease-out both; }
+
 /* 主体 */
 .main { max-width: 960px; margin: 0 auto; padding: 24px; }
 .intro { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
