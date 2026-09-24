@@ -93,6 +93,17 @@ a:focus-visible, button:focus-visible,
 .job-card .job-intro { font-size: 14px; color: #4b5563; margin-top: 6px; }
 .job-card .job-meta { font-size: 12px; color: #6b7280; margin-top: 10px; }
 
+/* Day 12：首页岗位筛选框（三态交互见 skills/frontend-guidelines） */
+.filter-bar { margin-bottom: 16px; }
+.filter-input {
+  width: 100%; padding: 10px 14px; font-size: 14px;
+  border: 1px solid #e0dacf; border-radius: 12px; background: #ffffff;
+  outline: none; box-sizing: border-box;
+}
+.filter-input:focus { border-color: #3b6fd4; }
+.filter-input::placeholder { color: #8a857d; }
+.filter-status { font-size: 13px; color: #6b7280; margin-top: 8px; min-height: 18px; }
+
 /* Day 8：四种页面状态的提示样式（加载中/空/错误共用一套骨架） */
 .state-tip {
   grid-column: 1 / -1; /* 在网格里横跨整行 */
