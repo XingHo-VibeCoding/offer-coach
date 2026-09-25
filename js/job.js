@@ -8,8 +8,14 @@
   if (!root) return;
 
   // ---- 1. 从网址参数找岗位 ----
+  // Day 13：先区分「数据没加载」和「参数不对」——数据挂了时给出错误态，不再误导用户说参数有问题
+  if (typeof window.JOBS === "undefined") {
+    root.innerHTML =
+      '<p class="state-tip state-error">岗位数据加载失败：读不到岗位清单（js/data.js 可能没加载成功）。请刷新页面试试；仍不行请检查文件是否存在。</p>';
+    return;
+  }
   var jobName = new URLSearchParams(location.search).get("job");
-  var jobs = window.JOBS || [];
+  var jobs = window.JOBS;
   var job = null;
   for (var i = 0; i < jobs.length; i++) {
     if (jobs[i].name === jobName) { job = jobs[i]; break; }

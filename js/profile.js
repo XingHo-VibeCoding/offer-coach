@@ -7,6 +7,13 @@
   var root = document.getElementById("profile-root");
   if (!root) return;
 
+  // Day 13：数据或存储脚本没加载成功时显示错误态，不再白屏假加载（此前会卡在「正在加载进度…」）
+  if (typeof window.OCStorage === "undefined" || typeof window.SKILLS === "undefined") {
+    root.innerHTML =
+      '<p class="state-tip state-error">进度数据加载失败：读不到技能总表或本地存储模块（js/data.js 或 js/storage.js 可能没加载成功）。请刷新页面试试。</p>';
+    return;
+  }
+
   var skillIndex = {};
   (window.SKILLS || []).forEach(function (s) { skillIndex[s.name] = s; });
 

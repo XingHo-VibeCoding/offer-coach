@@ -108,6 +108,19 @@
   var msg = document.getElementById("form-msg");
   var resultRoot = document.getElementById("result-root");
 
+  // Day 13：数据没加载成功时显示错误条并禁用按钮，不让用户对着空下拉框猜原因
+  if (typeof window.JOBS === "undefined" || typeof window.SKILLS === "undefined") {
+    var panel = document.querySelector(".analyze-panel");
+    if (panel) {
+      var dataErr = document.createElement("p");
+      dataErr.className = "state-tip state-error";
+      dataErr.textContent = "岗位数据加载失败：读不到岗位清单和技能总表（js/data.js 可能没加载成功）。请刷新页面试试；仍不行请检查文件是否存在。";
+      panel.insertBefore(dataErr, panel.firstChild);
+    }
+    if (btn) btn.disabled = true;
+    return;
+  }
+
   // 改进②：技能名 → 一句话说明（来自 data.js 的 note 字段），给不认识的技能配注释
   var skillNotes = {};
   (window.SKILLS || []).forEach(function (s) { if (s.note) skillNotes[s.name] = s.note; });
