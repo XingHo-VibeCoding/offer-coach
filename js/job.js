@@ -83,12 +83,33 @@
     var box = document.createElement("input");
     box.type = "checkbox";
     box.checked = window.OCStorage.isMastered(skillName);
+
+    // Day 14 修复①（甲）：「已保存」闪现在技能条目自己身上——反馈跟着视线走，
+    // 不再只出现在列表上方的统计行（测试员勾完眼睛盯着刚点的那一行）
+    var flash = document.createElement("span");
+    flash.className = "saved-flash";
+    flash.textContent = "✓ 已保存";
+
     box.addEventListener("change", function () {
       var ok = window.OCStorage.setMastered(skillName, box.checked);
-      statusEl.textContent = ok
-        ? "✓ 已保存（" + new Date().toLocaleTimeString() + "）"
-        : "✗ 保存失败：浏览器存储不可用";
+      // Day 14 修复②（乙）：保存提示顺手指路「我的进度」——测试员的困惑正是
+      // 「我勾的东西存到哪了」，第一跳去了差距分析而不是进度页
+      if (ok) {
+        statusEl.textContent = "";
+        statusEl.appendChild(document.createTextNode("✓ 已保存（" + new Date().toLocaleTimeString() + "）。"));
+        var tip = document.createElement("a");
+        tip.href = "profile.html";
+        tip.textContent = "全部进度可在「我的进度」页查看 →";
+        statusEl.appendChild(tip);
+      } else {
+        statusEl.textContent = "✗ 保存失败：浏览器存储不可用";
+      }
       statusEl.className = "save-status " + (ok ? "is-ok" : "is-bad");
+      if (ok) {
+        flash.classList.remove("is-show");
+        void flash.offsetWidth; // 强制重排：连续勾选也能重新触发动画
+        flash.classList.add("is-show");
+      }
       refreshCount(true);
     });
 
@@ -108,6 +129,7 @@
 
     item.appendChild(box);
     item.appendChild(text);
+    item.appendChild(flash); // Day 14 修复①：挂在条目尾部，配合 margin-left:auto 靠右显示
     listEl.appendChild(item);
   });
 
