@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "envId": "offer-coach-d0ge7jkzfc47e2079",
+  "region": "ap-shanghai",
+  "functionRoot": "./cloudbase/functions",
+  "functions": [
+    {
+      "name": "api-health",
+      "timeout": 5,
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "memorySize": 128,
+      "installDependency": false,
+      "ignore": ["node_modules", "node_modules/**/*", ".git", ".git/**/*"]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "api-health",
+  "version": "0.1.0",
+  "description": "offer-coach 健康检查云函数（Day 15）",
+  "main": "index.js",
+  "private": true
+}
