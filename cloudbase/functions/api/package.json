@@ -1,0 +1,12 @@
+{
+  "name": "offer-coach-api",
+  "version": "0.2.0",
+  "description": "offer-coach 业务接口云函数（HTTP 函数）：/api/health 健康检查、/api/jobs 岗位与技能读取",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}

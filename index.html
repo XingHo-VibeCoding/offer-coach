@@ -30,7 +30,8 @@
       <p id="filter-status" class="filter-status" aria-live="polite"></p>
     </section>
 
-    <!-- 岗位卡片由 js/app.js 从 js/data.js 渲染；下面是加载态占位，渲染成功后会被替换 -->
+    <!-- 岗位卡片由 js/app.js 渲染；数据由 js/data.js 从云函数接口取回（Day 17 板块⑤）
+         下面是加载态占位：数据就绪后会被替换成卡片（或空态 / 错误态） -->
     <section id="job-list" class="job-grid" aria-label="岗位清单">
       <p class="state-tip state-loading">正在加载岗位数据…</p>
     </section>

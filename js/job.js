@@ -3,152 +3,170 @@
 
 (function () {
   "use strict";
-
-  var root = document.getElementById("job-detail");
-  if (!root) return;
-
-  // ---- 1. 从网址参数找岗位 ----
-  // Day 13：先区分「数据没加载」和「参数不对」——数据挂了时给出错误态，不再误导用户说参数有问题
-  if (typeof window.JOBS === "undefined") {
-    root.innerHTML =
-      '<p class="state-tip state-error">岗位数据加载失败：读不到岗位清单（js/data.js 可能没加载成功）。请刷新页面试试；仍不行请检查文件是否存在。</p>';
-    return;
-  }
-  var jobName = new URLSearchParams(location.search).get("job");
-  var jobs = window.JOBS;
-  var job = null;
-  for (var i = 0; i < jobs.length; i++) {
-    if (jobs[i].name === jobName) { job = jobs[i]; break; }
-  }
-
-  if (!job) {
-    root.innerHTML =
-      '<p class="error-tip">没有找到这个岗位' +
-      (jobName ? '（参数：' + jobName + '）' : "（网址里缺少 ?job= 参数）") +
-      '。请从<a href="index.html">首页岗位清单</a>进入。</p>';
-    return;
-  }
-
-  // ---- 2. 渲染岗位信息 ----
-  document.title = job.name + "｜Offer 教练";
-  document.getElementById("job-title").textContent = job.name;
-  document.getElementById("job-intro").textContent = job.intro || "";
-
-  var skillIndex = {};
-  (window.SKILLS || []).forEach(function (s) { skillIndex[s.name] = s; });
-
-  // Day 10 修复①：技能清单按学习阶段从低到高排（基础→进阶→高级），同阶段保持原有先后
-  var required = (job.requiredSkills || []).slice(); // slice 拷贝一份，不污染原始数据
-  var stageRank = { "基础": 0, "进阶": 1, "高级": 2 };
-  required.sort(function (a, b) {
-    var sa = skillIndex[a] && skillIndex[a].stage ? stageRank[skillIndex[a].stage] : 1;
-    var sb = skillIndex[b] && skillIndex[b].stage ? stageRank[skillIndex[b].stage] : 1;
-    return sa - sb;
-  });
-
-  // ---- 3. 渲染技能清单（可勾选）----
-  var listEl = document.createElement("div");
-  listEl.className = "skill-list";
-
-  var countEl = document.createElement("p");
-  countEl.className = "progress-count";
-
-  var statusEl = document.createElement("p");
-  statusEl.className = "save-status";
-
-  function masteredCount() {
-    var n = 0;
-    required.forEach(function (name) {
-      if (window.OCStorage.isMastered(name)) n++;
-    });
-    return n;
-  }
-
-  function refreshCount(pop) {
-    countEl.textContent = "已掌握 " + masteredCount() + " / " + required.length + " 项（勾选自动保存到本浏览器）";
-    // Day 11 交互B：勾选时数字弹一下，强化「保存成功」的即时反馈
-    if (pop) {
-      countEl.classList.remove("count-pop");
-      void countEl.offsetWidth; // 强制重排：让动画在连续勾选时也能重新触发
-      countEl.classList.add("count-pop");
+  // ---- Day 17 板块⑤：数据改为从接口异步取，等就绪后再渲染 ----
+  window.OCDataReady(function (state) {
+    if (state === "error") {
+      showDataError();
+      return;
     }
-  }
-
-  required.forEach(function (skillName) {
-    var skill = skillIndex[skillName] || {};
-
-    var item = document.createElement("label");
-    item.className = "skill-item";
-
-    var box = document.createElement("input");
-    box.type = "checkbox";
-    box.checked = window.OCStorage.isMastered(skillName);
-
-    // Day 14 修复①（甲）：「已保存」闪现在技能条目自己身上——反馈跟着视线走，
-    // 不再只出现在列表上方的统计行（测试员勾完眼睛盯着刚点的那一行）
-    var flash = document.createElement("span");
-    flash.className = "saved-flash";
-    flash.textContent = "✓ 已保存";
-
-    box.addEventListener("change", function () {
-      var ok = window.OCStorage.setMastered(skillName, box.checked);
-      // Day 14 修复②（乙）：保存提示顺手指路「我的进度」——测试员的困惑正是
-      // 「我勾的东西存到哪了」，第一跳去了差距分析而不是进度页
-      if (ok) {
-        statusEl.textContent = "";
-        statusEl.appendChild(document.createTextNode("✓ 已保存（" + new Date().toLocaleTimeString() + "）。"));
-        var tip = document.createElement("a");
-        tip.href = "profile.html";
-        tip.textContent = "全部进度可在「我的进度」页查看 →";
-        statusEl.appendChild(tip);
-      } else {
-        statusEl.textContent = "✗ 保存失败：浏览器存储不可用";
-      }
-      statusEl.className = "save-status " + (ok ? "is-ok" : "is-bad");
-      if (ok) {
-        flash.classList.remove("is-show");
-        void flash.offsetWidth; // 强制重排：连续勾选也能重新触发动画
-        flash.classList.add("is-show");
-      }
-      refreshCount(true);
-    });
-
-    var text = document.createElement("span");
-    text.className = "skill-text";
-    text.innerHTML = ""; // 下面用 DOM 方式拼，避免注入
-    var nameEl = document.createElement("strong");
-    nameEl.textContent = skillName;
-    var stageEl = document.createElement("span");
-    stageEl.className = "stage-badge stage-" + (skill.stage === "基础" ? "basic" : skill.stage === "高级" ? "adv" : "mid");
-    stageEl.textContent = skill.stage || "进阶";
-    var noteEl = document.createElement("small");
-    noteEl.textContent = skill.note || "";
-    text.appendChild(nameEl);
-    text.appendChild(stageEl);
-    text.appendChild(noteEl);
-
-    item.appendChild(box);
-    item.appendChild(text);
-    item.appendChild(flash); // Day 14 修复①：挂在条目尾部，配合 margin-left:auto 靠右显示
-    listEl.appendChild(item);
+    init();
   });
 
-  // ---- 4. 差距分析入口（真链接，PRD 验收第 4 条的第二个入口）----
-  var analyzeLink = document.createElement("a");
-  analyzeLink.className = "btn-primary analyze-link";
-  analyzeLink.href = "analyze.html?job=" + encodeURIComponent(job.name);
-  analyzeLink.textContent = "用这个岗位做差距分析 →";
+  function showDataError() {
+    var box = document.getElementById("job-detail");
+    if (!box) return;
+    box.innerHTML = '<p class="state-tip state-error">岗位数据加载失败：接口没有正常返回（' +
+      (window.OC_DATA_ERROR || "未知原因") + '）。请刷新页面试试。</p>';
+  }
 
-  // ---- 5. 组装 ----
-  root.textContent = "";
-  var dutyEl = document.createElement("p");
-  dutyEl.className = "job-duty";
-  dutyEl.textContent = job.duty || "";
-  root.appendChild(dutyEl);
-  root.appendChild(countEl);
-  root.appendChild(listEl);
-  root.appendChild(statusEl);
-  root.appendChild(analyzeLink);
+  function init() {
 
-  refreshCount();
+    var root = document.getElementById("job-detail");
+    if (!root) return;
+
+    // ---- 1. 从网址参数找岗位 ----
+    // Day 13：先区分「数据没加载」和「参数不对」——数据挂了时给出错误态，不再误导用户说参数有问题
+    if (typeof window.JOBS === "undefined") {
+      root.innerHTML =
+        '<p class="state-tip state-error">岗位数据加载失败：读不到岗位清单（js/data.js 可能没加载成功）。请刷新页面试试；仍不行请检查文件是否存在。</p>';
+      return;
+    }
+    var jobName = new URLSearchParams(location.search).get("job");
+    var jobs = window.JOBS;
+    var job = null;
+    for (var i = 0; i < jobs.length; i++) {
+      if (jobs[i].name === jobName) { job = jobs[i]; break; }
+    }
+
+    if (!job) {
+      root.innerHTML =
+        '<p class="error-tip">没有找到这个岗位' +
+        (jobName ? '（参数：' + jobName + '）' : "（网址里缺少 ?job= 参数）") +
+        '。请从<a href="index.html">首页岗位清单</a>进入。</p>';
+      return;
+    }
+
+    // ---- 2. 渲染岗位信息 ----
+    document.title = job.name + "｜Offer 教练";
+    document.getElementById("job-title").textContent = job.name;
+    document.getElementById("job-intro").textContent = job.intro || "";
+
+    var skillIndex = {};
+    (window.SKILLS || []).forEach(function (s) { skillIndex[s.name] = s; });
+
+    // Day 10 修复①：技能清单按学习阶段从低到高排（基础→进阶→高级），同阶段保持原有先后
+    var required = (job.requiredSkills || []).slice(); // slice 拷贝一份，不污染原始数据
+    var stageRank = { "基础": 0, "进阶": 1, "高级": 2 };
+    required.sort(function (a, b) {
+      var sa = skillIndex[a] && skillIndex[a].stage ? stageRank[skillIndex[a].stage] : 1;
+      var sb = skillIndex[b] && skillIndex[b].stage ? stageRank[skillIndex[b].stage] : 1;
+      return sa - sb;
+    });
+
+    // ---- 3. 渲染技能清单（可勾选）----
+    var listEl = document.createElement("div");
+    listEl.className = "skill-list";
+
+    var countEl = document.createElement("p");
+    countEl.className = "progress-count";
+
+    var statusEl = document.createElement("p");
+    statusEl.className = "save-status";
+
+    function masteredCount() {
+      var n = 0;
+      required.forEach(function (name) {
+        if (window.OCStorage.isMastered(name)) n++;
+      });
+      return n;
+    }
+
+    function refreshCount(pop) {
+      countEl.textContent = "已掌握 " + masteredCount() + " / " + required.length + " 项（勾选自动保存到本浏览器）";
+      // Day 11 交互B：勾选时数字弹一下，强化「保存成功」的即时反馈
+      if (pop) {
+        countEl.classList.remove("count-pop");
+        void countEl.offsetWidth; // 强制重排：让动画在连续勾选时也能重新触发
+        countEl.classList.add("count-pop");
+      }
+    }
+
+    required.forEach(function (skillName) {
+      var skill = skillIndex[skillName] || {};
+
+      var item = document.createElement("label");
+      item.className = "skill-item";
+
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = window.OCStorage.isMastered(skillName);
+
+      // Day 14 修复①（甲）：「已保存」闪现在技能条目自己身上——反馈跟着视线走，
+      // 不再只出现在列表上方的统计行（测试员勾完眼睛盯着刚点的那一行）
+      var flash = document.createElement("span");
+      flash.className = "saved-flash";
+      flash.textContent = "✓ 已保存";
+
+      box.addEventListener("change", function () {
+        var ok = window.OCStorage.setMastered(skillName, box.checked);
+        // Day 14 修复②（乙）：保存提示顺手指路「我的进度」——测试员的困惑正是
+        // 「我勾的东西存到哪了」，第一跳去了差距分析而不是进度页
+        if (ok) {
+          statusEl.textContent = "";
+          statusEl.appendChild(document.createTextNode("✓ 已保存（" + new Date().toLocaleTimeString() + "）。"));
+          var tip = document.createElement("a");
+          tip.href = "profile.html";
+          tip.textContent = "全部进度可在「我的进度」页查看 →";
+          statusEl.appendChild(tip);
+        } else {
+          statusEl.textContent = "✗ 保存失败：浏览器存储不可用";
+        }
+        statusEl.className = "save-status " + (ok ? "is-ok" : "is-bad");
+        if (ok) {
+          flash.classList.remove("is-show");
+          void flash.offsetWidth; // 强制重排：连续勾选也能重新触发动画
+          flash.classList.add("is-show");
+        }
+        refreshCount(true);
+      });
+
+      var text = document.createElement("span");
+      text.className = "skill-text";
+      text.innerHTML = ""; // 下面用 DOM 方式拼，避免注入
+      var nameEl = document.createElement("strong");
+      nameEl.textContent = skillName;
+      var stageEl = document.createElement("span");
+      stageEl.className = "stage-badge stage-" + (skill.stage === "基础" ? "basic" : skill.stage === "高级" ? "adv" : "mid");
+      stageEl.textContent = skill.stage || "进阶";
+      var noteEl = document.createElement("small");
+      noteEl.textContent = skill.note || "";
+      text.appendChild(nameEl);
+      text.appendChild(stageEl);
+      text.appendChild(noteEl);
+
+      item.appendChild(box);
+      item.appendChild(text);
+      item.appendChild(flash); // Day 14 修复①：挂在条目尾部，配合 margin-left:auto 靠右显示
+      listEl.appendChild(item);
+    });
+
+    // ---- 4. 差距分析入口（真链接，PRD 验收第 4 条的第二个入口）----
+    var analyzeLink = document.createElement("a");
+    analyzeLink.className = "btn-primary analyze-link";
+    analyzeLink.href = "analyze.html?job=" + encodeURIComponent(job.name);
+    analyzeLink.textContent = "用这个岗位做差距分析 →";
+
+    // ---- 5. 组装 ----
+    root.textContent = "";
+    var dutyEl = document.createElement("p");
+    dutyEl.className = "job-duty";
+    dutyEl.textContent = job.duty || "";
+    root.appendChild(dutyEl);
+    root.appendChild(countEl);
+    root.appendChild(listEl);
+    root.appendChild(statusEl);
+    root.appendChild(analyzeLink);
+
+    refreshCount();
+  }
 })();
