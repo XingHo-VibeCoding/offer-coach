@@ -1,7 +1,7 @@
 {
   "name": "offer-coach-api",
-  "version": "0.2.0",
-  "description": "offer-coach 业务接口云函数（HTTP 函数）：/api/health 健康检查、/api/jobs 岗位与技能读取",
+  "version": "0.3.0",
+  "description": "offer-coach 业务接口云函数（HTTP 函数）：/api/health 健康检查、/api/jobs 岗位与技能读取、/api/skills 自定义技能写入",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

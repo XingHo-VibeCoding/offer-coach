@@ -15,7 +15,7 @@
     },
     {
       "name": "api",
-      "description": "offer-coach 业务接口（HTTP 函数）：/api/health 健康检查 + /api/jobs 岗位与技能读取",
+      "description": "offer-coach 业务接口（HTTP 函数）：/api/health 健康检查 + /api/jobs 岗位与技能读取 + /api/skills 自定义技能写入",
       "timeout": 10,
       "runtime": "Nodejs20.19",
       "handler": "index.main",

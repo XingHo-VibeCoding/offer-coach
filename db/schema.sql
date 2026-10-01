@@ -4,6 +4,8 @@
 -- 作用：定义第 3 周的两张核心表——jobs（岗位表）、skills（技能总表）
 -- 依据：PRD.md 第六节「数据字段」+ api-contract.md 3.2「GET /api/jobs」响应结构
 -- 配套：db/seed.sql（示例数据）；先跑本文件建结构，再跑 seed.sql 灌数据
+-- 另含：末尾的 GRANT 语句（给匿名身份授 skills 表写权限）——重建数据库后写接口靠它才能用，
+--       详见文件末尾「写入权限」一节
 --
 -- 执行方式（在项目根目录的终端里）：
 --   tcb db execute -e offer-coach-d0ge7jkzfc47e2079 --sql "$(cat db/schema.sql)"
@@ -62,6 +64,26 @@ COMMENT ON COLUMN skills.note          IS '一句话说明，零基础也能看�
 COMMENT ON COLUMN skills.aliases       IS '别名数组，用于从岗位描述里识别同一技能的不同写法（如 JavaScript 的别名 JS、ES6）';
 COMMENT ON COLUMN skills.related_jobs  IS '要求该技能的岗位名数组，元素取值来自 jobs.name（多对多的反向）';
 COMMENT ON COLUMN skills.source        IS '数据来源，仅可取：预设 / 用户自定义';
+
+
+-- -----------------------------------------------------------------------------
+-- 写入权限：让云函数能往 skills 表里写（Day 18）
+-- -----------------------------------------------------------------------------
+-- ⚠️ 这一条不是可选项，漏了写接口会静默失效，务必保留。
+--
+-- 背景：CloudBase 的云函数是以**匿名身份（anon）**连数据库的，平台默认只给 SELECT。
+--       所以 Day 18 的写接口 POST /api/skills 首次上线时直接报
+--       code=2001，数据库原文是：permission denied for table skills（PG 错误码 42501）。
+--
+-- 为什么只授 INSERT：写接口只做「新增一条技能」，不需要改、也不需要删。
+--                   按最小必要权限原则，不授 UPDATE / DELETE。
+-- 为什么不需要授序列权限：skills.id 是 SERIAL，插入时会用到 skills_id_seq；
+--                   实测 anon 对这个序列**已有** USAGE 权限，无需额外授权。
+--                   若换了环境后报「序列权限不足」，补一句：
+--                   GRANT USAGE ON SEQUENCE skills_id_seq TO anon;
+-- 怎么撤销：REVOKE INSERT ON skills FROM anon;
+-- -----------------------------------------------------------------------------
+GRANT INSERT ON skills TO anon;
 
 
 -- -----------------------------------------------------------------------------
