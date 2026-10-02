@@ -1,9 +1,17 @@
-// offer-coach 云函数：业务接口 —— Day 17（读）/ Day 18（写）
+// offer-coach 云函数：业务接口 —— Day 17（读）/ Day 18（写）/ Day 19（分层重构）
 // 形态：HTTP 函数（CloudBase 模板形态：Node.js 内置 http 模块起常驻服务，监听 9000 端口）
 // 职责：一个函数按路径分发多个接口——
 //   GET  /api/health → 健康检查（保持 Day 15 已上线的扁平结构，一字不改）
 //   GET  /api/jobs   → 读数据库，返回岗位清单 + 技能总表（统一信封结构，见 api-contract.md 3.2）
 //   POST /api/skills → 写数据库，新增一条自定义技能（见 api-contract.md 3.5）—— Day 18
+//
+// 【Day 19 分层重构 · 重要】
+//   本文件（接口层）从此【不再碰数据库】。所有表名、字段名、查询语句都搬到了
+//   ./db.js（数据访问层）。本文件只负责：解析请求 → 校验参数 → 调 db.js 的函数
+//   → 拼响应。所以在这里搜不到 select / insert / 表名 / 蛇形字段名，这是刻意的。
+//   改动约定：改数据库相关（表结构、字段、查询条件）→ 改 db.js；
+//             改接口相关（参数校验、中文提示、响应形状）→ 改本文件。
+//
 // 【板块③ 上线记录】部署与路由有 3 个坑，重新部署时照做：
 //   1. 部署命令：tcb fn deploy api --httpFn --force -e <envId>（别加 --path，路由已存在）
 //   2. 网关路由：/api/jobs → api，类型必须是 WEB_SCF（HTTP 函数），且「路径透传」要打开；
@@ -16,34 +24,16 @@
 //
 // 【Day 18 要点】防重复提交是两层，缺一不可：
 //   第一层 = 写库前先按 name 查一次库，命中直接返回 code:1005 + 中文提示（给用户看的人话）；
-//   第二层 = skills.name 上的 UNIQUE 约束兜底 —— 「先查后写」中间有时间窗口，
-//            并发时两条请求可能都查到「不存在」然后都去写，这时第二条会被数据库顶回来；
-//            数据库报的 23505 也翻译成同一个 1005，绝不让用户看到英文报错。
-//
-// 【板块② 改动】连库方式从「pg 直连 + 环境变量传密码」改为「官方 Node SDK」。
-// 原因：实测发现本环境根本没有超级用户、默认账号也无建角色权限（自建账号走不通），
-//       而平台给云函数预留了专用数据库角色，官方 Node SDK 只要环境 ID 就能读库，零密码。
-// 这样也顺带消掉了原来的两个风险：服务端 SSL 是关的、数据库地址是公网地址。
+//   第二层 = skills.name 上的 UNIQUE 约束兜底（两层都在 db.js 里实现，
+//            本文件只根据 db.js 返回的结果决定回什么中文提示）。
 
 const http = require("http");
-const cloudbase = require("@cloudbase/node-sdk");
+// 数据访问层：凡是跟数据库有关的，都从这里取，本文件不直接接触数据库
+const store = require("./db");
 
 const SERVICE = "offer-coach-api";
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 const PORT = process.env.PORT || 9000;
-
-// ---------------------------------------------------------------------------
-// 数据库客户端
-// TCB_ENV 是平台自动注入的环境 ID（不是密钥，公开无害）；本地调试时可手动指定。
-// 模块顶层初始化一次，让云函数实例复用，避免每次请求重建。
-// ---------------------------------------------------------------------------
-const ENV_ID = process.env.TCB_ENV || "offer-coach-d0ge7jkzfc47e2079";
-const app = cloudbase.init({ env: ENV_ID });
-// 【关键】必须显式指定 schema 为 public。
-// 原因：SDK 里 rdb() 的默认值是 `database = envId`，而该值会作为
-// Accept-Profile / Content-Profile 头（PostgREST 的 schema 参数）发出，
-// 于是服务端报 "Invalid schema: offer-coach-...".
-const db = app.rdb({ database: "public" });
 
 // 统一的 JSON 响应出口
 function sendJson(res, statusCode, payload) {
@@ -73,10 +63,8 @@ function handleHealth(res) {
 // ---------------------------------------------------------------------------
 // GET /api/jobs —— 岗位清单 + 技能总表
 // 支持查询参数（余力加练）：?limit=N  限制返回的岗位条数（1-100）
+// 本函数只做「校验参数 + 拼响应」，取数据交给 db.js
 // ---------------------------------------------------------------------------
-var JOBS_COLUMNS = "name, intro, duty, required_skills";
-var SKILLS_COLUMNS = "name, category, stage, note, aliases, related_jobs, source";
-
 async function handleJobs(req, res, query) {
   // 查询参数：limit 限制作业条数，缺省返回全部
   var limit = null;
@@ -93,42 +81,9 @@ async function handleJobs(req, res, query) {
   }
 
   try {
-    // 岗位：按 id 升序（保证每次返回顺序稳定）
-    var jobsQuery = db.from("jobs").select(JOBS_COLUMNS).order("id", { ascending: true });
-    if (limit) {
-      jobsQuery = jobsQuery.limit(limit);
-    }
-    var jobsResult = await jobsQuery;
-
-    // 技能总表：随岗位一起下发，不分设接口
-    var skillsResult = await db
-      .from("skills")
-      .select(SKILLS_COLUMNS)
-      .order("id", { ascending: true });
-
-    if (jobsResult.error) throw new Error("jobs: " + describeError(jobsResult.error));
-    if (skillsResult.error) throw new Error("skills: " + describeError(skillsResult.error));
-
-    var jobs = (jobsResult.data || []).map(function (r) {
-      return {
-        name: r.name,
-        intro: r.intro,
-        duty: r.duty,
-        requiredSkills: r.required_skills
-      };
-    });
-
-    var skills = (skillsResult.data || []).map(function (r) {
-      return {
-        name: r.name,
-        category: r.category,
-        stage: r.stage,
-        note: r.note,
-        aliases: r.aliases,
-        relatedJobs: r.related_jobs,
-        source: r.source
-      };
-    });
+    // 取数交给数据访问层，本层只关心「拿到什么、怎么回」
+    var jobs = await store.listJobs(limit);
+    var skills = await store.listSkills();
 
     sendJson(res, 200, {
       code: 0,
@@ -148,29 +103,13 @@ async function handleJobs(req, res, query) {
   }
 }
 
-// 把 SDK 返回的 error 对象压成一行可读文本，方便看日志
-function describeError(e) {
-  if (!e) return "unknown";
-  if (typeof e === "string") return e;
-  return e.message || JSON.stringify(e);
-}
-
-// 写库/查库失败时用这个——describeError 只取 message，
-// 而 PostgREST 报错的关键信息在 code（如 42501=权限不足）和 details 里，只走服务端日志，不返回给请求方。
-function describeErrorFull(e) {
-  if (!e) return "unknown";
-  if (typeof e === "string") return e;
-  var parts = [];
-  if (e.code) parts.push("code=" + e.code);
-  if (e.message) parts.push("message=" + e.message);
-  if (e.details) parts.push("details=" + e.details);
-  if (e.hint) parts.push("hint=" + e.hint);
-  return parts.length ? parts.join(" ｜ ") : JSON.stringify(e);
-}
+// （原 describeError / describeErrorFull / isDuplicateError 已搬到 db.js ——
+//  它们都是「怎么理解数据库的报错」，属于数据访问层的知识）
 
 // ---------------------------------------------------------------------------
 // POST /api/skills —— 新增一条自定义技能（Day 18）
 // 契约：api-contract.md 3.5
+// 本函数只做「校验 + 调 db.js + 拼响应」，防重复的两层判断在 db.js 里
 // ---------------------------------------------------------------------------
 
 // 允许的取值，与 db/schema.sql 里的 CHECK 约束保持一致（改这里必须同步改表约束）
@@ -216,31 +155,11 @@ function sendBizError(res, code, message) {
   return sendJson(res, 200, { code: code, message: message, data: null });
 }
 
-// 服务端日志（今日「余力加练」）：每笔写入都留一行，以后排查问题不用瞎猜
+// 服务端日志（Day 18「余力加练」）：每笔写入都留一行，以后排查问题不用瞎猜
 function logWrite(action, detail) {
   console.log(
     "[api/skills] " + new Date().toISOString() + " " + action + "｜" + detail
   );
-}
-
-// 判断是不是「唯一约束冲突」——PostgreSQL 的 SQLSTATE 就是 23505
-function isDuplicateError(e) {
-  if (!e) return false;
-  if (e.code === "23505") return true;
-  return /duplicate key|already exists/i.test(e.message || "");
-}
-
-// 把数据库的行映射成对外的驼峰字段，形状必须与 GET /api/jobs 里的 skills 元素一致
-function toSkillJson(row) {
-  return {
-    name: row.name,
-    category: row.category,
-    stage: row.stage,
-    note: row.note,
-    aliases: row.aliases,
-    relatedJobs: row.related_jobs,
-    source: row.source
-  };
 }
 
 async function handleCreateSkill(req, res) {
@@ -293,45 +212,34 @@ async function handleCreateSkill(req, res) {
     return sendBizError(res, 1002, "说明太长了，请控制在 200 字以内");
   }
 
-  // source / aliases / related_jobs 由服务端定死，客户端传什么都不认——
-  // 否则客户端可以伪造 source:"预设" 往技能总表里混假数据
-  var row = {
-    name: name,
-    category: category,
-    stage: stage,
-    note: note,
-    aliases: [],
-    related_jobs: [],
-    source: "用户自定义"
-  };
-
   try {
     // ---- 第三步（防重复第一层）：写库前先查一次重名，为的是给用户一句人话 ----
-    var dupResult = await db.from("skills").select("name").eq("name", name).limit(1);
-    if (dupResult.error) {
-      throw new Error("查重失败：" + describeErrorFull(dupResult.error));
-    }
-    if (dupResult.data && dupResult.data.length > 0) {
+    // 「aliases / source 这些入库字段怎么填」归 db.js 管，本层只管「重名了该回什么话」
+    var taken = await store.isSkillNameTaken(name);
+    if (taken) {
       logWrite("重复提交被拒（查重层）", "技能名=" + name);
       return sendBizError(res, 1005, "这个技能已经在清单里了，不用重复添加");
     }
 
     // ---- 第四步（防重复第二层）：写库，唯一约束兜底 ----
-    var insertResult = await db.from("skills").insert(row);
-    if (insertResult.error) {
-      if (isDuplicateError(insertResult.error)) {
-        // 并发时两条请求都通过了查重，第二条会走到这里
-        logWrite("重复提交被拒（数据库层）", "技能名=" + name);
-        return sendBizError(res, 1005, "这个技能已经在清单里了，不用重复添加");
-      }
-      throw new Error("写库失败：" + describeErrorFull(insertResult.error));
+    // db.js 会把数据库的 23505 翻译成 duplicate:true，本层据此回同一句中文提示
+    var saved = await store.insertSkill({
+      name: name,
+      category: category,
+      stage: stage,
+      note: note
+    });
+    if (saved.duplicate) {
+      // 并发时两条请求都通过了查重，第二条会走到这里
+      logWrite("重复提交被拒（数据库层）", "技能名=" + name);
+      return sendBizError(res, 1005, "这个技能已经在清单里了，不用重复添加");
     }
 
     logWrite("写入成功", "技能名=" + name + "／分类=" + category + "／阶段=" + stage);
     sendJson(res, 200, {
       code: 0,
       message: "ok",
-      data: { skill: toSkillJson(row) }
+      data: { skill: saved.skill }
     });
   } catch (err) {
     logWrite("写入失败", "技能名=" + name + "／原因=" + (err && err.message));
