@@ -225,6 +225,34 @@ a:focus-visible, button:focus-visible,
 }
 .chip-del:hover { color: #b91c1c; }
 
+/* ---- 【Day 22】删除前二次确认弹窗 ---- */
+/* 为什么要有遮罩层：把背后的页面盖住，让用户的注意力只落在「删不删」这一个决定上 */
+.confirm-mask {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(41, 37, 36, 0.42);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.confirm-dialog {
+  background: #ffffff; border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(41, 37, 36, 0.2);
+  padding: 20px 22px; max-width: 380px; width: 100%;
+}
+.confirm-title { font-size: 16px; font-weight: bold; margin: 0 0 8px; color: #292524; }
+.confirm-text { font-size: 14px; line-height: 1.6; color: #57534e; margin: 0 0 18px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+/* 取消按钮用中性色、确定删除用红色 —— 视觉上「安全的那条路」更显眼 */
+.btn-ghost {
+  border: 1px solid #e0dcd4; background: #faf9f7; color: #44403c;
+  border-radius: 10px; padding: 8px 16px; font-size: 14px; cursor: pointer;
+}
+.btn-ghost:hover { background: #f1efe9; }
+.btn-danger {
+  border: none; background: #b91c1c; color: #ffffff;
+  border-radius: 10px; padding: 8px 16px; font-size: 14px; cursor: pointer;
+}
+.btn-danger:hover { background: #991b1b; }
+
 .mastered-list { display: flex; flex-direction: column; gap: 8px; }
 .mastered-item {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;

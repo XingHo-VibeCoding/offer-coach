@@ -1,5 +1,11 @@
 // offer-coach 我的进度页 —— Day 7 步骤 2d（对应 PRD P4 / F6）
 // 两块内容：① 已掌握技能汇总（含自定义技能）② 添加/删除自定义技能
+//
+// 【Day 22】今天的重点：删除要加「二次确认」，并真调用云端接口
+//   · 为什么加确认：删除不可逆、不能撤销，点错一下东西就没了（新增错了还能删，删错了没处找）
+//   · 为什么接云端：自定义技能现在存在云数据库里（Day 18 起的写入接口），
+//     页面上删了、库里还在，就会「删了又回来」——所以删除必须落到云端
+//   · 找不到对应云端记录的（纯本地遗留技能）：只删本地并如实提示，不假装删了云端
 
 (function () {
   "use strict";
@@ -81,13 +87,145 @@
         del.textContent = "×";
         del.title = "删除这个自定义技能";
         del.addEventListener("click", function () {
-          window.OCStorage.removeCustom(name);
-          refreshCustomList();
-          refreshMasteredList();
+          // 【Day 22】点删除不再直接删 —— 先弹确认框
+          askConfirm(name, function () {
+            removeCustomSkill(name);
+          });
         });
         chip.appendChild(del);
         customList.appendChild(chip);
       });
+    }
+
+    // ---- 【Day 22】删除前二次确认：自绘弹窗（不用浏览器原生 confirm，样式可控、截图好看）----
+    // 为什么要自绘：原生 confirm 样式由浏览器决定、无法说明「删的是什么」；
+    // 自绘弹窗能把技能名明确写进去，让用户看清自己删的是哪一条。
+    var lastFocus = null; // 记下弹窗打开前焦点在哪，关掉后还回去（键盘用户不迷失）
+
+    function askConfirm(skillName, onOk) {
+      lastFocus = document.activeElement;
+
+      var mask = document.createElement("div");
+      mask.className = "confirm-mask";
+
+      var dialog = document.createElement("div");
+      dialog.className = "confirm-dialog";
+      dialog.setAttribute("role", "dialog");
+      dialog.setAttribute("aria-modal", "true");
+
+      var title = document.createElement("h3");
+      title.className = "confirm-title";
+      title.textContent = "确定删除这个技能吗？";
+
+      var text = document.createElement("p");
+      text.className = "confirm-text";
+      // 把技能名原样显示出来（加引号），避免用户看错行删错东西
+      text.textContent = "「" + skillName + "」将从你的自定义技能里移除。删除后不可恢复。";
+
+      var row = document.createElement("div");
+      row.className = "confirm-actions";
+
+      var cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "btn-ghost";
+      cancelBtn.textContent = "取消";
+
+      var okBtn = document.createElement("button");
+      okBtn.type = "button";
+      okBtn.className = "btn-danger";
+      okBtn.textContent = "确定删除";
+
+      function close() {
+        if (mask.parentNode) mask.parentNode.removeChild(mask);
+        document.removeEventListener("keydown", onKey);
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+      }
+
+      function onKey(e) {
+        if (e.key === "Escape") { e.preventDefault(); close(); }
+      }
+
+      cancelBtn.addEventListener("click", close);
+      // 点遮罩空白处 = 取消（常见的「我反悔了」操作，不能让它变成删除）
+      mask.addEventListener("click", function (e) {
+        if (e.target === mask) close();
+      });
+      okBtn.addEventListener("click", function () {
+        close();
+        onOk();
+      });
+      document.addEventListener("keydown", onKey);
+
+      row.appendChild(cancelBtn);
+      row.appendChild(okBtn);
+      dialog.appendChild(title);
+      dialog.appendChild(text);
+      dialog.appendChild(row);
+      mask.appendChild(dialog);
+      document.body.appendChild(mask);
+      // 焦点默认落在「取消」上：误按回车时安全的那一边先响应
+      cancelBtn.focus();
+    }
+
+    // ---- 【Day 22】真删除：先找云端记录 → 调 DELETE → 再删本地 ----
+    // 找不到云端记录（纯本地遗留技能）→ 只删本地，并如实告知「这条只存在你的浏览器里」。
+    // 为什么这么设计：本地和云端本来就可能对不上（老数据在浏览器、新数据在库里），
+    // 强行「假装删了云端」或「因为云端没有所以不删」都是错的，如实告知才是对的。
+    function removeCustomSkill(skillName) {
+      var cloudSkill = (window.SKILLS || []).filter(function (s) {
+        return s.name === skillName && s.source === "用户自定义";
+      })[0];
+
+      if (!cloudSkill || cloudSkill.id === undefined) {
+        window.OCStorage.removeCustom(skillName);
+        refreshCustomList();
+        refreshMasteredList();
+        formMsg.textContent = "✓ 已移除「" + skillName + "」（这条只存在于你的浏览器里，云端没有记录）";
+        formMsg.className = "form-msg is-ok";
+        return;
+      }
+
+      formMsg.textContent = "正在删除「" + skillName + "」…";
+      formMsg.className = "form-msg";
+
+      fetch(window.OC_API_BASE + "/api/skills?id=" + encodeURIComponent(cloudSkill.id), {
+        method: "DELETE"
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (json) {
+          // 按统一信封：code=0 才算删成功（见 api-contract.md 3.6.2）
+          if (!json || json.code !== 0) {
+            var msg = (json && json.message) ? json.message : "删除失败，请重试";
+            // 1004（已被删掉）不算坏事：库里本来就没有，接着把本地也清掉
+            if (json && json.code === 1004) {
+              window.OCStorage.removeCustom(skillName);
+              refreshCustomList();
+              refreshMasteredList();
+              formMsg.textContent = "这条技能云端已经不存在了，已帮你从本地清单移除";
+              formMsg.className = "form-msg is-ok";
+              return;
+            }
+            formMsg.textContent = msg;
+            formMsg.className = "form-msg is-bad";
+            return;
+          }
+          // 云端删成功 → 再把本地记录删掉，两边保持一致
+          window.OCStorage.removeCustom(skillName);
+          refreshCustomList();
+          refreshMasteredList();
+          var deleted = json.data && json.data.deleted;
+          formMsg.textContent = "✓ 已删除「" + ((deleted && deleted.name) || skillName) + "」（云端 + 本地都已移除）";
+          formMsg.className = "form-msg is-ok";
+        })
+        .catch(function (err) {
+          // 网络层失败：本地不动，避免出现「本地没了、云端还在」的不一致
+          formMsg.textContent = "删除失败：" + ((err && err.message) ? err.message : "网络异常") +
+            "。请检查网络后重试（本地清单未改动）";
+          formMsg.className = "form-msg is-bad";
+        });
     }
 
     function submitCustom() {

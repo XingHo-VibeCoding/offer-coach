@@ -1,9 +1,11 @@
-// offer-coach 云函数：业务接口 —— Day 17（读）/ Day 18（写）/ Day 19（分层重构）
+// offer-coach 云函数：业务接口 —— Day 17（读）/ Day 18（写）/ Day 19（分层重构）/ Day 22（改·删）
 // 形态：HTTP 函数（CloudBase 模板形态：Node.js 内置 http 模块起常驻服务，监听 9000 端口）
 // 职责：一个函数按路径分发多个接口——
-//   GET  /api/health → 健康检查（保持 Day 15 已上线的扁平结构，一字不改）
-//   GET  /api/jobs   → 读数据库，返回岗位清单 + 技能总表（统一信封结构，见 api-contract.md 3.2）
-//   POST /api/skills → 写数据库，新增一条自定义技能（见 api-contract.md 3.5）—— Day 18
+//   GET    /api/health       → 健康检查（保持 Day 15 已上线的扁平结构，一字不改）
+//   GET    /api/jobs         → 读数据库，返回岗位清单 + 技能总表（统一信封结构，见 api-contract.md 3.2）
+//   POST   /api/skills       → 写数据库，新增一条自定义技能（见 api-contract.md 3.5）—— Day 18
+//   PATCH  /api/skills?id=N  → 修改一条自定义技能（见 api-contract.md 3.6.1）—— Day 22
+//   DELETE /api/skills?id=N  → 删除一条自定义技能（见 api-contract.md 3.6.2）—— Day 22
 //
 // 【Day 19 分层重构 · 重要】
 //   本文件（接口层）从此【不再碰数据库】。所有表名、字段名、查询语句都搬到了
@@ -22,6 +24,15 @@
 // 边界：Day 18 只做「新增一条自定义技能」这一个写接口；
 //       PATCH / DELETE（修改、删除）与批量写入一律留到第 4 周。
 //
+// 【Day 22 要点 · 改/删的防呆三层】——为什么删除比新增更容易出事：
+//   新增错了可以删掉重来；删除不可逆，还会让别处引用它的地方变成「悬空」（岗位里存的技能名找不到了）。
+//   所以改 / 删接口固定三层防护，一层比一层靠前：
+//     ① 参数层：id 缺失 / 非正整数 → 1001，不进数据库
+//     ② 存在层：先按 id 查一条，查不到 → 1004（不能直接 UPDATE/DELETE：
+//        数据库对「没匹配到行」不报错，只会静默影响 0 行，接口若照回「成功」就是骗用户）
+//     ③ 权限层：source 不是「用户自定义」→ 1006（预设数据禁改禁删，防把技能总表改坏）
+//   重名（改完跟别的技能重名）复用 1005；服务端锁死 source/aliases/relatedJobs，客户端伪造无效。
+//
 // 【Day 18 要点】防重复提交是两层，缺一不可：
 //   第一层 = 写库前先按 name 查一次库，命中直接返回 code:1005 + 中文提示（给用户看的人话）；
 //   第二层 = skills.name 上的 UNIQUE 约束兜底（两层都在 db.js 里实现，
@@ -32,7 +43,7 @@ const http = require("http");
 const store = require("./db");
 
 const SERVICE = "offer-coach-api";
-const VERSION = "0.4.0";
+const VERSION = "0.5.0";
 const PORT = process.env.PORT || 9000;
 
 // 统一的 JSON 响应出口
@@ -254,6 +265,172 @@ async function handleCreateSkill(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// 【Day 22】改 / 删两个接口的公共前半段：「取 id + 查这条记录 + 校验能不能动」
+// ---------------------------------------------------------------------------
+// 为什么抽出来：PATCH 和 DELETE 的前三步一模一样（取 id → 查记录 → 卡预设数据），
+// 只有最后「怎么改 / 怎么删」不同。抽出来避免两处抄一遍、改一处忘一处。
+// 返回 { ok: false, code, message } → 调用方照原样回错误；
+//      返回 { ok: true, id, skill }   → 调用方继续做自己的事。
+async function loadEditableSkill(res, query) {
+  // ---- 第①层：参数校验（便宜的先做，别为了一个空 id 去查库）----
+  var rawId = query.id;
+  if (rawId === undefined || rawId === "") {
+    return { ok: false, code: 1001, message: "缺少要操作的技能编号" };
+  }
+  // Number("38") = 38；Number("38abc") = NaN；Number("") 上面已挡掉
+  var id = Number(rawId);
+  if (!Number.isInteger(id) || id < 1) {
+    return { ok: false, code: 1001, message: "技能编号不合法" };
+  }
+
+  // ---- 第②层：这条记录真的存在吗 ----
+  // 不查就改 / 删，数据库会「影响 0 行而不报错」，接口就会把没干成的事说成干成了
+  var skill = await store.getSkillById(id);
+  if (!skill) {
+    return { ok: false, code: 1004, message: "这条技能不存在，可能已被删除" };
+  }
+
+  // ---- 第③层：这条记录允许动吗 ----
+  // 预设技能被改名会让岗位详情页指向不存在的名字（悬空引用），被删更是直接少一项，
+  // 所以预设定为「只读」。source 由服务端从数据库读出判定，客户端无权声明。
+  if (skill.source !== "用户自定义") {
+    return {
+      ok: false,
+      code: 1006,
+      message: "预设技能不能修改或删除，只能改自己添加的技能"
+    };
+  }
+
+  return { ok: true, id: id, skill: skill };
+}
+
+// ---------------------------------------------------------------------------
+// PATCH /api/skills?id=N —— 修改一条自定义技能（Day 22）
+// 契约：api-contract.md 3.6.1
+// 支持部分更新：请求体里只传要改的字段，其余保持原值
+// ---------------------------------------------------------------------------
+async function handleUpdateSkill(req, res, query) {
+  // ---- 前半段（三层防呆里的前两层 + 预设校验）----
+  var target;
+  try {
+    target = await loadEditableSkill(res, query);
+  } catch (err) {
+    logWrite("修改失败（查记录时出错）", "原因=" + (err && err.message));
+    return sendBizError(res, 2001, "服务暂时不可用，请稍后重试");
+  }
+  if (!target.ok) {
+    return sendBizError(res, target.code, target.message);
+  }
+
+  // ---- 读请求体 ----
+  var body;
+  try {
+    body = await readJsonBody(req);
+  } catch (e) {
+    var why = e && e.message;
+    if (why === "too-large") {
+      return sendBizError(res, 1002, "提交内容太长了，请精简后再试");
+    }
+    return sendBizError(res, 1002, "请求格式不对，请检查提交内容");
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return sendBizError(res, 1002, "请求格式不对，请检查提交内容");
+  }
+
+  // ---- 挑出「真要改的字段」，顺手做校验 ----
+  // 注意：只认 name / category / stage / note 四个业务字段。
+  // id / source / aliases / relatedJobs 即使客户端传了也一律无视（服务端锁定）。
+  var patch = {};
+
+  if (body.name !== undefined) {
+    var name = typeof body.name === "string" ? body.name.trim() : "";
+    if (!name) return sendBizError(res, 1001, "请把技能名填上");
+    if (name.length > NAME_MAX_LEN) return sendBizError(res, 1002, "技能名太长了，请控制在 40 字以内");
+    patch.name = name;
+  }
+
+  if (body.category !== undefined) {
+    var category = typeof body.category === "string" ? body.category.trim() : "";
+    if (!category) return sendBizError(res, 1001, "请选择技能分类");
+    if (SKILL_CATEGORIES.indexOf(category) === -1) {
+      return sendBizError(res, 1002, "分类只能是：语言、框架、工具、其他");
+    }
+    patch.category = category;
+  }
+
+  if (body.stage !== undefined) {
+    var stage = typeof body.stage === "string" ? body.stage.trim() : "";
+    if (!stage) return sendBizError(res, 1001, "请选择学习阶段");
+    if (SKILL_STAGES.indexOf(stage) === -1) {
+      return sendBizError(res, 1002, "学习阶段只能是：基础、进阶、高级");
+    }
+    patch.stage = stage;
+  }
+
+  if (body.note !== undefined) {
+    var note = typeof body.note === "string" ? body.note.trim() : "";
+    if (!note) return sendBizError(res, 1001, "请写一句话说明这个技能是做什么的");
+    if (note.length > NOTE_MAX_LEN) return sendBizError(res, 1002, "说明太长了，请控制在 200 字以内");
+    patch.note = note;
+  }
+
+  // 一个可改字段都没传：与其静默回「成功」，不如直说没东西可改
+  if (Object.keys(patch).length === 0) {
+    return sendBizError(res, 1002, "没有要修改的内容");
+  }
+
+  try {
+    var updated = await store.updateSkill(target.id, patch);
+    if (updated.duplicate) {
+      logWrite("修改被拒（重名）", "id=" + target.id + "／技能名=" + patch.name);
+      return sendBizError(res, 1005, "这个技能已经在清单里了，不用重复添加");
+    }
+    if (updated.notFound) {
+      // 查过之后、写之前被人删掉了（并发窗口）
+      return sendBizError(res, 1004, "这条技能不存在，可能已被删除");
+    }
+    logWrite("修改成功", "id=" + target.id + "／改了=" + Object.keys(patch).join(","));
+    sendJson(res, 200, { code: 0, message: "ok", data: { skill: updated.skill } });
+  } catch (err) {
+    logWrite("修改失败", "id=" + target.id + "／原因=" + (err && err.message));
+    console.error("[api/skills] update failed:", err && err.message);
+    sendBizError(res, 2001, "服务暂时不可用，请稍后重试");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DELETE /api/skills?id=N —— 删除一条自定义技能（Day 22）
+// 契约：api-contract.md 3.6.2
+// 无请求体
+// ---------------------------------------------------------------------------
+async function handleDeleteSkill(req, res, query) {
+  var target;
+  try {
+    target = await loadEditableSkill(res, query);
+  } catch (err) {
+    logWrite("删除失败（查记录时出错）", "原因=" + (err && err.message));
+    return sendBizError(res, 2001, "服务暂时不可用，请稍后重试");
+  }
+  if (!target.ok) {
+    return sendBizError(res, target.code, target.message);
+  }
+
+  try {
+    var removed = await store.deleteSkill(target.id);
+    if (removed.notFound) {
+      return sendBizError(res, 1004, "这条技能不存在，可能已被删除");
+    }
+    logWrite("删除成功", "id=" + target.id + "／技能名=" + removed.deleted.name);
+    // 删除不可逆，回执带上被删的 id + 名字，前端才好提示「已删除『xxx』」
+    sendJson(res, 200, { code: 0, message: "ok", data: { deleted: removed.deleted } });
+  } catch (err) {
+    logWrite("删除失败", "id=" + target.id + "／原因=" + (err && err.message));
+    console.error("[api/skills] delete failed:", err && err.message);
+    sendBizError(res, 2001, "服务暂时不可用，请稍后重试");
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 路径分发
 // ---------------------------------------------------------------------------
 var server = http.createServer(function (req, res) {
@@ -272,6 +449,16 @@ var server = http.createServer(function (req, res) {
   }
   if (pathname === "/api/skills" && req.method === "POST") {
     return handleCreateSkill(req, res);
+  }
+  // 【Day 22】同一个路径 /api/skills，按 HTTP 方法分给不同处理函数：
+  //   PATCH  = 改一条、DELETE = 删一条，靠 ?id=N 定位是哪一条
+  // 用查询参数而不是 /api/skills/38，是因为网关路由是精确匹配的，
+  // 带 id 的路径得再登记一条路由；查询参数能复用已登记的这条（见 api-contract.md 1.2）。
+  if (pathname === "/api/skills" && req.method === "PATCH") {
+    return handleUpdateSkill(req, res, query);
+  }
+  if (pathname === "/api/skills" && req.method === "DELETE") {
+    return handleDeleteSkill(req, res, query);
   }
 
   // 未注册的路径

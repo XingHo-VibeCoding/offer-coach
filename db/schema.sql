@@ -67,7 +67,7 @@ COMMENT ON COLUMN skills.source        IS '数据来源，仅可取：预设 / �
 
 
 -- -----------------------------------------------------------------------------
--- 写入权限：让云函数能往 skills 表里写（Day 18）
+-- 写入权限：让云函数能往 skills 表里写（Day 18 授权，Day 22 扩权）
 -- -----------------------------------------------------------------------------
 -- ⚠️ 这一条不是可选项，漏了写接口会静默失效，务必保留。
 --
@@ -75,15 +75,19 @@ COMMENT ON COLUMN skills.source        IS '数据来源，仅可取：预设 / �
 --       所以 Day 18 的写接口 POST /api/skills 首次上线时直接报
 --       code=2001，数据库原文是：permission denied for table skills（PG 错误码 42501）。
 --
--- 为什么只授 INSERT：写接口只做「新增一条技能」，不需要改、也不需要删。
---                   按最小必要权限原则，不授 UPDATE / DELETE。
+-- 授权范围随接口一起长：
+--   · Day 18 只有「新增」接口           → 授 INSERT
+--   · Day 22 加了「修改」「删除」接口     → 追加 UPDATE、DELETE（PATCH / DELETE /api/skills）
+-- 权限只开给 skills 表，jobs 表保持只读（本期没有改岗位的接口）。
+-- 「预设技能禁止改删」由接口层的业务校验（source 判定 → code:1006）保证，
+-- 不靠数据库权限——因为同一张表里既有预设数据也有自定义数据，权限是表级的，分不开。
 -- 为什么不需要授序列权限：skills.id 是 SERIAL，插入时会用到 skills_id_seq；
 --                   实测 anon 对这个序列**已有** USAGE 权限，无需额外授权。
 --                   若换了环境后报「序列权限不足」，补一句：
 --                   GRANT USAGE ON SEQUENCE skills_id_seq TO anon;
--- 怎么撤销：REVOKE INSERT ON skills FROM anon;
+-- 怎么撤销：REVOKE INSERT, UPDATE, DELETE ON skills FROM anon;
 -- -----------------------------------------------------------------------------
-GRANT INSERT ON skills TO anon;
+GRANT INSERT, UPDATE, DELETE ON skills TO anon;
 
 
 -- -----------------------------------------------------------------------------
