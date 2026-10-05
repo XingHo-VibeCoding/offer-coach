@@ -3,6 +3,8 @@
 .env
 .env.*
 *.env
+# 例外：.env.example 是「不含真实值的模板」，要进仓库给协作者看
+!.env.example
 
 # 证书与密钥文件
 *.pem

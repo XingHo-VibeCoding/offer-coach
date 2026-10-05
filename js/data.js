@@ -42,7 +42,56 @@ function ocNotify(state) {
   list.forEach(function (fn) { fn(state); });
 }
 
-// 取数据。加 10 秒超时：网络卡住时给用户一个明确的失败提示，而不是一直转圈
+// ---------------------------------------------------------------------------
+// Day 23 板块③：错误翻译层 —— 把技术黑话翻成人话
+//
+// 为什么需要它：
+//   浏览器抛出的原始报错是给开发者看的英文，比如断网时是 "Failed to fetch"、
+//   超时是 "The operation was aborted"。直接甩给用户，用户只会一脸问号。
+//   所以在这里统一「翻译」：用户看中文结果，英文原文只进控制台留档。
+//
+// 三类错误：
+//   ① 网络类 —— 断网 / 超时（fetch 自身就失败了，请求根本没到服务器）
+//   ② 服务类 —— HTTP 非 2xx（服务器收到了但处理失败，如 404 / 500）
+//   ③ 数据类 —— 请求成功但返回的格式不对（不是 JSON、缺字段）
+// ---------------------------------------------------------------------------
+window.OCDescribeError = function (err) {
+  var raw = (err && err.message) ? String(err.message) : String(err || "");
+
+  // ⓪ 后端给的中文提示本来就是人话（如「服务暂时不可用，请稍后重试」），原样透传，不再翻译。
+  //    判据收紧：整条消息以中文为主（中文占多数）、长度不超过 40 字、且不含报错痕迹
+  //    （堆栈/文件路径/技术符号）。避免把「某个谁也没见过的怪错误」这种兜底也放行。
+  var cnCount = (raw.match(/[\u4e00-\u9fa5]/g) || []).length;
+  var looksTechnical = /at\s+\S+\(|\.js:|\.ts:|Error:|undefined|null/i.test(raw);
+  if (cnCount > 0 && cnCount >= raw.length / 2 && raw.length <= 40 && !looksTechnical) {
+    return raw;
+  }
+
+  // ① 网络类：fetch 在断网/域名解析失败时抛 "Failed to fetch"（各浏览器措辞略有不同）
+  if (/failed to fetch|networkerror|network request failed|load failed/i.test(raw)) {
+    return "网络连接失败，请检查网络后重试";
+  }
+  // ① 网络类：我们设的 10 秒超时触发 abort
+  if (/abort/i.test(raw)) {
+    return "请求超时（超过 10 秒没有响应），请稍后重试";
+  }
+  // ② 服务类：HTTP 状态码非 2xx
+  var httpMatch = raw.match(/^HTTP\s+(\d{3})$/i);
+  if (httpMatch) {
+    var code = httpMatch[1];
+    if (code === "404") return "接口地址不对（404），请联系维护者";
+    if (code.charAt(0) === "5") return "服务暂时不可用（" + code + "），请稍后重试";
+    return "请求失败（HTTP " + code + "），请稍后重试";
+  }
+  // ③ 数据类：res.json() 解析失败，或响应不是预期结构
+  if (/json|unexpected token|格式异常/i.test(raw)) {
+    return "接口返回的数据看不懂（格式异常），请稍后重试";
+  }
+  // 兜底：实在认不出的错误，也别把英文直接甩给用户；原文留在控制台
+  if (raw) console.warn("[offer-coach] 未归类的错误（仅开发者可见）：", raw);
+  return "加载失败，请刷新页面重试";
+};
+
 var ocAbort = (typeof AbortController !== "undefined") ? new AbortController() : null;
 var ocTimer = setTimeout(function () {
   if (ocAbort) ocAbort.abort();
@@ -58,6 +107,7 @@ fetch(window.OC_API_BASE + window.OC_API_PATH, ocOptions)
     clearTimeout(ocTimer);
     // 业务层校验：按统一信封约定，code = 0 才算成功（见 api-contract.md）
     if (!json || json.code !== 0 || !json.data) {
+      // 后端约定：失败时 message 已是中文（如「服务暂时不可用，请稍后重试」），直接透传
       throw new Error((json && json.message) ? json.message : "接口返回格式异常");
     }
     window.JOBS = json.data.jobs || [];
@@ -66,6 +116,8 @@ fetch(window.OC_API_BASE + window.OC_API_PATH, ocOptions)
   })
   .catch(function (err) {
     clearTimeout(ocTimer);
-    window.OC_DATA_ERROR = (err && err.message) ? err.message : String(err);
+    // Day 23 板块③：进控制台留英文原文（开发者排查用），页面上显示中文人话
+    if (err && err.message) console.warn("[offer-coach] 数据加载失败，原文：", err.message);
+    window.OC_DATA_ERROR = window.OCDescribeError(err);
     ocNotify("error");
   });

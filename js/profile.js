@@ -222,7 +222,11 @@
         })
         .catch(function (err) {
           // 网络层失败：本地不动，避免出现「本地没了、云端还在」的不一致
-          formMsg.textContent = "删除失败：" + ((err && err.message) ? err.message : "网络异常") +
+          // Day 23 板块③：err.message 是英文技术黑话（如 "Failed to fetch"），
+          // 用 data.js 的错误翻译层换成中文，别把英文甩给用户
+          if (err && err.message) console.warn("[offer-coach] 删除请求失败，原文：", err.message);
+          var why = (window.OCDescribeError) ? window.OCDescribeError(err) : "网络异常";
+          formMsg.textContent = "删除失败：" + why +
             "。请检查网络后重试（本地清单未改动）";
           formMsg.className = "form-msg is-bad";
         });
