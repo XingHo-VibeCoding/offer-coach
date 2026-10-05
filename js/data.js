@@ -11,6 +11,9 @@
 //   如果页面脚本立刻开跑，数据还在路上，它就会误判成「加载失败」。
 //   所以约定：页面脚本用 OCDataReady(回调) 注册自己的初始化逻辑，
 //   数据到了（或确认失败）再执行 —— 三种状态：loading（还在路上）/ ready / error。
+//
+// Day 24 补充：接口不可用时（如跨域被拦），会自动加载 js/builtin-data.js 这份内置快照兜底，
+//   让页面「可用但数据可能略旧」，而不是整页空白。见文件下方的「离线兜底」段。
 
 // 接口地址（CloudBase 云函数，板块③ 已上线）
 window.OC_API_BASE = "https://offer-coach-d0ge7jkzfc47e2079-1496995497.ap-shanghai.app.tcloudbase.com";
@@ -92,6 +95,54 @@ window.OCDescribeError = function (err) {
   return "加载失败，请刷新页面重试";
 };
 
+// ---------------------------------------------------------------------------
+// Day 24 修复：离线兜底 —— 接口连不上时，用内置数据快照把页面撑起来
+//
+// 要修的是什么：
+//   GitHub Pages 站点（xingho-vibecoding.github.io）不在接口的放行名单里，
+//   浏览器按跨域规定拦掉了它发出的请求（CORS：响应里没有 Access-Control-Allow-Origin）。
+//   结果就是：页面能打开，但数据全空、整站不可用。
+//
+// 为什么这么修：
+//   接口侧补放行是走不通的 —— 云函数自己加跨域头会和网关叠成两个值反而更坏
+//   （Day 17 踩过，见 index.js 里的注释）；免费套餐也不允许添加安全域名（Day 15 试过）。
+//   所以从页面侧解：接口连不上时，加载一份随包发布的数据快照兜底。
+//
+// 为什么用「动态加载」而不是直接写在 HTML 里：
+//   快照有 18KB，正常站点（接口通）根本用不上，写进 HTML 会让每次访问都白下载。
+//   改成「只在兜底时才插入 <script>」，正常站点零开销，四个页面也一个字不用改。
+//
+// 重要：仍然先请求真实接口。接口哪天通了，自动回到最新数据，快照只是备胎。
+// ---------------------------------------------------------------------------
+window.OC_DATA_SOURCE = "api"; // api = 数据来自接口；builtin = 数据来自内置快照
+
+/** 动态加载内置快照文件；成功返回 true，失败（文件缺失等）返回 false */
+function ocLoadBuiltin() {
+  return new Promise(function (resolve) {
+    if (window.OC_BUILTIN_DATA) return resolve(true); // 已经加载过
+    var s = document.createElement("script");
+    s.src = "js/builtin-data.js";
+    s.onload = function () { resolve(!!window.OC_BUILTIN_DATA); };
+    s.onerror = function () { resolve(false); };
+    document.head.appendChild(s);
+  });
+}
+
+/** 页面顶部插一条诚实提示：现在看的是离线快照，数据可能不是最新的 */
+function ocShowOfflineBanner() {
+  function insert() {
+    if (!document.body || document.getElementById("oc-offline-banner")) return;
+    var bar = document.createElement("div");
+    bar.id = "oc-offline-banner";
+    bar.className = "offline-banner";
+    bar.setAttribute("role", "status"); // 读屏软件也会念出来
+    bar.textContent = "当前显示的是内置数据快照：接口暂时连不上（可能是网络问题，或本站点不在接口放行名单内）。数据可能不是最新的。";
+    document.body.insertBefore(bar, document.body.firstChild);
+  }
+  if (document.body) insert();
+  else document.addEventListener("DOMContentLoaded", insert);
+}
+
 var ocAbort = (typeof AbortController !== "undefined") ? new AbortController() : null;
 var ocTimer = setTimeout(function () {
   if (ocAbort) ocAbort.abort();
@@ -119,5 +170,21 @@ fetch(window.OC_API_BASE + window.OC_API_PATH, ocOptions)
     // Day 23 板块③：进控制台留英文原文（开发者排查用），页面上显示中文人话
     if (err && err.message) console.warn("[offer-coach] 数据加载失败，原文：", err.message);
     window.OC_DATA_ERROR = window.OCDescribeError(err);
-    ocNotify("error");
+
+    // Day 24 修复：先试着用内置快照兜底；连快照都没有（文件缺失）才落到错误态
+    ocLoadBuiltin().then(function (ok) {
+      if (ok && window.OC_BUILTIN_DATA) {
+        var snap = window.OC_BUILTIN_DATA;
+        window.JOBS = snap.jobs || [];
+        window.SKILLS = snap.skills || [];
+        window.OC_DATA_SOURCE = "builtin";
+        console.warn("[offer-coach] 接口不可用，已切换到内置数据快照（" +
+          window.JOBS.length + " 个岗位 / " + window.SKILLS.length + " 条技能）");
+        ocShowOfflineBanner();
+        ocNotify("ready"); // 对页面来说数据「就绪」了，正常渲染
+      } else {
+        console.warn("[offer-coach] 内置快照也不可用，页面落到错误态");
+        ocNotify("error");
+      }
+    });
   });

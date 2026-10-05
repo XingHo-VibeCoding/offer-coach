@@ -113,6 +113,17 @@ a:focus-visible, button:focus-visible,
 }
 .state-error { color: #b91c1c; background: #fff7f7; border-color: #f3c1c1; }
 
+/* Day 24：离线兜底提示条 —— 接口连不上、改用内置快照时，显示在页面最上方（诚实告知数据可能略旧） */
+.offline-banner {
+  background: #fff8e6;
+  color: #8a5300;
+  border-bottom: 1px solid #f0dcae;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 9px 24px;
+  text-align: center;
+}
+
 .noscript-tip { color: #b45309; }
 
 /* 页脚 */
