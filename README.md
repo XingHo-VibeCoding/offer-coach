@@ -53,6 +53,9 @@
 ├── cloudbase/functions/
 │   ├── api/            # 主云函数：index.js（接口层）+ db.js（数据访问层）
 │   └── api-health/     # Day 15 的健康检查函数（/api/health 路由指向它）
+├── skills/
+│   ├── frontend-guidelines/  # 前端设计规则 Skill
+│   └── verify-project/       # 发布前检查 Skill（六域：公网/健康/读写/密钥/Git 安全/数据库）
 └── db/
     ├── schema.sql      # 建表脚本（开发期；含 GRANT 授权，保证重建后写接口可用）
     └── seed.sql        # 示例数据（8 岗位 + 37 技能）
@@ -73,6 +76,23 @@
 - **差距分析升级为大模型识别**：换掉 `js/analyze.js` 的关键词匹配，届时表外技能也能自动认出
 - **放宽跨域限制**：升级套餐后可把 GitHub Pages 域名加入白名单，届时两个地址都能用
 
+## 发布前检查（verify-project Skill）
+
+改完代码、上线之前，按 [`skills/verify-project/SKILL.md`](skills/verify-project/SKILL.md) 跑一遍。它覆盖六个域，逐项输出 **PASS / FAIL + 证据**（不许写成「应该没问题」）：
+
+| 域 | 查什么 |
+|---|-------|
+| 公网 | 两个站点能否打开、线上文件与本地内容是否一致、GitHub Pages 是否已更新 |
+| 健康 | 接口信封 `code=0`、跨域响应头是否按来源正确区分 |
+| 读写 | 权限配置 + **真写一条测试数据 → 验 → 真删 → 验删净** |
+| 密钥 | 三层排查（现有文件 / 未追踪 / Git 全历史）+ 豁免规则判定 |
+| Git 安全 | `.env` 未入库、忽略规则生效、工作区状态、历史无密钥 |
+| 数据库 | 直连查真实行数、与接口返回对账、关键约束在位 |
+
+**怎么读结果**：只有三种结论——`PASS` / `FAIL` / `SKIP`。`FAIL` 会附上具体数字或原文，直接照它给的下一步做即可。
+
+> **一个经验**：这个 Skill 的判据是在**两次误报 + 两次漏报**的修正中磨出来的（详见 Skill 文末「调用记录」）。检查工具最容易犯的错不是「查不出问题」，而是「**假报问题**」——人看多了假警报，就会开始无视真警报。
+
 ## 相关文档
 
-产品需求见 [PRD.md](PRD.md)，技术选型与架构见 [TECH_DESIGN.md](TECH_DESIGN.md)，接口契约见 [api-contract.md](api-contract.md)，部署与跨域备忘见 [DEPLOY-NOTES.md](DEPLOY-NOTES.md)，竞品调研见 [research.md](research.md)，协作规则见 [AGENTS.md](AGENTS.md)。
+产品需求见 [PRD.md](PRD.md)，技术选型与架构见 [TECH_DESIGN.md](TECH_DESIGN.md)，接口契约见 [api-contract.md](api-contract.md)，部署与跨域备忘见 [DEPLOY-NOTES.md](DEPLOY-NOTES.md)，安全自查见 [SECURITY.md](SECURITY.md)，回归清单见 [REGRESSION.md](REGRESSION.md)，竞品调研见 [research.md](research.md)，协作规则见 [AGENTS.md](AGENTS.md)。
