@@ -38,13 +38,30 @@
     return false;
   }
 
+  /** 自定义技能名 = 云端（SKILLS 里 source=「用户自定义」）+ 本地清单（Day 27 修正）
+   *  为什么两端都要：云端是 Day 27 起的新数据源（换设备也在），本地是老数据 / 离线兜底时加的。
+   *  只看本地的话，「云端加过的自定义技能」在差距分析里不算已掌握 ——
+   *  与「我的进度」页明明显示着这个标签自相矛盾。 */
+  function customNames() {
+    var names = [];
+    (window.SKILLS || []).forEach(function (s) {
+      if (s && s.source === "用户自定义" && s.name && names.indexOf(s.name) === -1) names.push(s.name);
+    });
+    if (typeof window.OCStorage !== "undefined") {
+      window.OCStorage.getCustom().forEach(function (n) {
+        if (n && names.indexOf(n) === -1) names.push(n);
+      });
+    }
+    return names;
+  }
+
   /** 已掌握集合 = 勾选的 + 自定义的（PRD F6：自定义技能即已掌握） */
   function buildMasteredSet() {
     var set = {};
     if (typeof window.OCStorage !== "undefined") {
       window.OCStorage.getMastered().forEach(function (n) { set[n] = true; });
-      window.OCStorage.getCustom().forEach(function (n) { set[n] = true; });
     }
+    customNames().forEach(function (n) { set[n] = true; });
     return set;
   }
 
@@ -62,17 +79,17 @@
   function analyzeJD(text) {
     var reqs = [];
     (window.SKILLS || []).forEach(function (s) {
+      // 自定义技能单独放到下面处理（要打「自定义」标记），这里先跳过，免得同一条被收两次
+      if (s.source === "用户自定义") return;
       if (skillMentioned(text, s)) {
         reqs.push({ name: s.name, stage: s.stage || "进阶", custom: false });
       }
     });
-    if (typeof window.OCStorage !== "undefined") {
-      window.OCStorage.getCustom().forEach(function (name) {
-        if (mentioned(text, name)) {
-          reqs.push({ name: name, stage: "进阶", custom: true });
-        }
-      });
-    }
+    customNames().forEach(function (name) {
+      if (mentioned(text, name)) {
+        reqs.push({ name: name, stage: "进阶", custom: true });
+      }
+    });
     return reqs;
   }
 

@@ -71,7 +71,12 @@
     addCustom: function (skillName) {
       var name = (skillName || "").trim();
       if (!name) return { ok: false, reason: "empty" };
-      var inCatalog = (window.SKILLS || []).some(function (s) { return s.name === name; });
+      // 【Day 27 修正】只拦「预设技能总表」里的名字。
+      // window.SKILLS 里同时装着接口返回的用户自定义技能，那些**不算**总表技能；
+      // 否则会把「云端已经有的自定义技能」误判成总表重名，从而拒绝写本地（Day 27 实测踩到）。
+      var inCatalog = (window.SKILLS || []).some(function (s) {
+        return s.name === name && s.source !== "用户自定义";
+      });
       if (inCatalog) return { ok: false, reason: "duplicate-catalog" };
       var list = readList(KEY_CUSTOM);
       if (list.indexOf(name) !== -1) return { ok: false, reason: "duplicate-custom" };

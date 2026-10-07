@@ -152,6 +152,15 @@ async function isSkillNameTaken(name) {
 // 「先查后写」中间有时间窗口，并发时两条请求可能都查到「不存在」然后都去写，
 // 这时第二条会被数据库的 UNIQUE 约束顶回来（报 23505）。
 // 这里把 23505 也翻译成 { duplicate: true }，交给 index.js 统一回 1005。
+//
+// 【Day 27 修正 · BACKLOG 第 14 条】返回值补上 id。
+// 改前的问题：insert 的回执被直接丢掉，返回的 skill 里没有 id；而契约 3.5 白纸黑字写着
+//   「data.skill 的形状与 3.2 节 skills[] 元素完全一致」，3.2 的元素是带 id 的 —— 文档与实现自相矛盾。
+// 为什么必须有 id：前端添加成功后要把这条并进本地技能清单，将来删除时要按 id 调
+//   DELETE /api/skills?id=N；没有 id，前端就只能提示「这条只存在于你的浏览器里」（Day 22 的老毛病）。
+// 为什么用「插完按名字回查一次」而不是 insert().select()：
+//   回查用的是本项目已经在跑的那套查询写法（select + eq + limit），行为确定、不依赖 SDK 的
+//   insert 是否支持链式 select；技能名有 UNIQUE 约束，插完必然只查到一行。
 async function insertSkill(skill) {
   var row = {
     name: skill.name,
@@ -169,7 +178,20 @@ async function insertSkill(skill) {
     }
     throw new Error("写库失败：" + describeErrorFull(result.error));
   }
-  return { duplicate: false, skill: toSkillJson(row) };
+
+  // 回查拿 id（name 唯一，最多一行）
+  var back = await db
+    .from("skills")
+    .select(SKILLS_COLUMNS_WITH_ID)
+    .eq("name", skill.name)
+    .limit(1);
+  if (back.error) throw new Error("写入后回查技能失败：" + describeErrorFull(back.error));
+  var rows = back.data || [];
+  if (rows.length === 0) {
+    // 理论上不会发生（刚插进去）；真发生了也不能假装成功，宁可让它去服务端日志里留痕
+    throw new Error("写入后回查技能为空：name=" + skill.name);
+  }
+  return { duplicate: false, skill: toSkillJsonWithId(rows[0]) };
 }
 
 // -----------------------------------------------------------------------------

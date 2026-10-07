@@ -60,7 +60,9 @@
 │   └── verify-project/       # 发布前检查 Skill（六域：公网/健康/读写/密钥/Git 安全/数据库）
 └── db/
     ├── schema.sql      # 建表脚本（开发期；含 GRANT 授权，保证重建后写接口可用）
-    └── seed.sql        # 示例数据（8 岗位 + 37 技能）
+    ├── seed.sql        # 示例数据（8 岗位 + 37 技能）
+    ├── export-data.js  # 数据导出脚本：把线上 jobs / skills 全量导成可重灌的 SQL
+    └── backup/         # 数据备份快照（可重新导入，恢复方法见 MAINTENANCE.md）
 ```
 
 **部署状态**：页面在 CloudBase 静态托管，云函数 + 数据库在 ap-shanghai。部署命令与踩坑记录见 [DEPLOY-NOTES.md](DEPLOY-NOTES.md)。
@@ -97,4 +99,4 @@
 
 ## 相关文档
 
-产品需求见 [PRD.md](PRD.md)，技术选型与架构见 [TECH_DESIGN.md](TECH_DESIGN.md)，接口契约见 [api-contract.md](api-contract.md)，部署与跨域备忘见 [DEPLOY-NOTES.md](DEPLOY-NOTES.md)，发布与回滚手册见 [ROLLBACK.md](ROLLBACK.md)，安全自查见 [SECURITY.md](SECURITY.md)，回归清单见 [REGRESSION.md](REGRESSION.md)，竞品调研见 [research.md](research.md)，协作规则见 [AGENTS.md](AGENTS.md)。
+产品需求见 [PRD.md](PRD.md)，技术选型与架构见 [TECH_DESIGN.md](TECH_DESIGN.md)，接口契约见 [api-contract.md](api-contract.md)，部署与跨域备忘见 [DEPLOY-NOTES.md](DEPLOY-NOTES.md)，发布与回滚手册见 [ROLLBACK.md](ROLLBACK.md)，运行维护手册（额度/到期/数据备份）见 [MAINTENANCE.md](MAINTENANCE.md)，安全自查见 [SECURITY.md](SECURITY.md)，回归清单见 [REGRESSION.md](REGRESSION.md)，竞品调研见 [research.md](research.md)，协作规则见 [AGENTS.md](AGENTS.md)。
