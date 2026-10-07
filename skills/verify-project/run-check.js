@@ -218,26 +218,49 @@ async function httpGetRetry(url, headers, tries) {
   // git grep 无命中时退出码 1（正常）；退出码 128 表示 git 本身出错
   var hits = (gr.out === "" ? [] : gr.out.split("\n")).filter(function (x) { return x.trim() !== ""; });
   var unexplained = [];
+  var cnt = { E1: 0, E2: 0, E3: 0, E6: 0 };
   hits.forEach(function (line) {
     var file = line.split(":")[0];
-    if (/\.md$/.test(file)) return;                                     // E1 豁免：文档正文
-    if (/^[^:]+:\d+:[A-Z_]+=\s*$/.test(line)) return;                    // E2 豁免：空值模板
-    if (/^[^:]+:\d+:.*(\/.*\|.*\/|unexpected token)/.test(line)) return; // E3 豁免：正则/比较
+    if (/\.md$/.test(file)) { cnt.E1++; return; }                          // E1 豁免：文档正文
+    if (/^skills\/verify-project\//.test(file)) { cnt.E6++; return; }      // E6 豁免：检查器自身目录（关键词清单天然在此）
+    if (/^[^:]+:\d+:[A-Z_]+=\s*$/.test(line)) { cnt.E2++; return; }        // E2 豁免：空值模板
+    if (/^[^:]+:\d+:.*(\/.*\|.*\/|unexpected token)/.test(line)) { cnt.E3++; return; } // E3 豁免：正则/比较
     unexplained.push(line);
   });
-  var e1 = hits.filter(function (h) { return /\.md$/.test(h.split(":")[0]); }).length;
   rec(unexplained.length === 0 ? "PASS" : "FAIL", "域4 密钥", "4.1 追踪文件无真实密钥",
-    hits.length === 0 ? "0 条命中" : "命中 " + hits.length + " 条，全部落在豁免规则内（其中 .md 文档 " + e1 + " 条），无法解释的 " + unexplained.length + " 条");
+    hits.length === 0 ? "0 条命中"
+      : "命中 " + hits.length + " 条，全部落在豁免规则内（文档 E1=" + cnt.E1 + "、检查器自身 E6=" + cnt.E6 + "、空值模板 E2=" + cnt.E2 + "、正则 E3=" + cnt.E3 + "），无法解释的 " + unexplained.length + " 条");
 
-  // 第3层：历史（E4：只出现在历史、且引入的是文档/配置模板类文件）
-  var histHits = 0, histDetail = [];
-  ["password", "api_key", "secret", "access_key", "private_key"].forEach(function (k) {
-    var h = git(["log", "--all", "-S" + k, "--oneline"]);
-    var n = h.out === "" ? 0 : h.out.split("\n").length;
-    if (n > 0) { histHits += n; histDetail.push(k + "=" + n); }
+  // 第3层：历史。E4 判据 = 「命中提交改过的文件，必须全属豁免类型（文档 / 模板 / 检查器自身）」
+  // 【Day 26 修正】原判据把期望值写死成 "api_key=1,password=1,secret=1"：
+  // Day 25 的提交把 SKILL.md 纳入 Git 历史后，命中数自然增加 → 假 FAIL。
+  // 判据必须与「数量」无关 —— 历史每多一个文档提交，数字就会变，写死等于给自己埋雷。
+  var KW3 = ["password", "api_key", "secret", "access_key", "private_key"];
+  var exemptFile = /\.md$|(^|\/)\.env\.example$|^skills\/verify-project\//;
+  var seen = {}, bad = [], hitCommits = [];
+  KW3.forEach(function (k) {
+    var h = git(["log", "--all", "-S" + k, "--name-only", "--format=COMMIT:%h"]);
+    var cur = null, files = [];
+    function flush() {
+      if (!cur) return;
+      if (!seen[cur]) {
+        seen[cur] = true; hitCommits.push(cur);
+        files.forEach(function (f) { if (!exemptFile.test(f)) bad.push(cur + " " + f); });
+      }
+      cur = null; files = [];
+    }
+    (h.out || "").split("\n").forEach(function (line) {
+      line = line.trim();
+      if (line === "") return;
+      if (/^COMMIT:/.test(line)) { flush(); cur = line.slice(7); }
+      else files.push(line);
+    });
+    flush();
   });
-  rec(histHits === 0 || histDetail.sort().join(",") === "api_key=1,password=1,secret=1" ? "PASS" : "FAIL", "域4 密钥", "4.3 Git 历史无密钥提交",
-    histHits === 0 ? "5 个关键词均 0 提交" : histDetail.join(" ") + "（均指向 ffcf1d8，即引入 SECURITY.md 的那次提交 → E4 豁免）");
+  rec(bad.length === 0 ? "PASS" : "FAIL", "域4 密钥", "4.3 Git 历史无密钥提交",
+    hitCommits.length === 0 ? "5 个关键词均 0 提交"
+      : "命中提交 " + hitCommits.join(", ") + " 共 " + hitCommits.length + " 个，改动文件全属豁免类型（文档/模板/检查器自身）"
+        + (bad.length ? "；⚠ 异常文件：" + bad.join("; ") : ""));
   }
 
   // ===== 输出 =====

@@ -1,5 +1,7 @@
 # offer-coach
 
+**v1.0** · 2026-10-07 正式发布
+
 帮求职者把「岗位要求」和「我的学习进度」放在一起对比，看清差距在哪、先学什么的求职差距分析工具。
 
 > 本项目是 28 天 vibe-coding 课程的实践作品，已上线公网：https://offer-coach-d0ge7jkzfc47e2079-1496995497.tcloudbaseapp.com/
@@ -95,4 +97,4 @@
 
 ## 相关文档
 
-产品需求见 [PRD.md](PRD.md)，技术选型与架构见 [TECH_DESIGN.md](TECH_DESIGN.md)，接口契约见 [api-contract.md](api-contract.md)，部署与跨域备忘见 [DEPLOY-NOTES.md](DEPLOY-NOTES.md)，安全自查见 [SECURITY.md](SECURITY.md)，回归清单见 [REGRESSION.md](REGRESSION.md)，竞品调研见 [research.md](research.md)，协作规则见 [AGENTS.md](AGENTS.md)。
+产品需求见 [PRD.md](PRD.md)，技术选型与架构见 [TECH_DESIGN.md](TECH_DESIGN.md)，接口契约见 [api-contract.md](api-contract.md)，部署与跨域备忘见 [DEPLOY-NOTES.md](DEPLOY-NOTES.md)，发布与回滚手册见 [ROLLBACK.md](ROLLBACK.md)，安全自查见 [SECURITY.md](SECURITY.md)，回归清单见 [REGRESSION.md](REGRESSION.md)，竞品调研见 [research.md](research.md)，协作规则见 [AGENTS.md](AGENTS.md)。
