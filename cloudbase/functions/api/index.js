@@ -59,6 +59,91 @@ function sendJson(res, statusCode, payload) {
 }
 
 // ---------------------------------------------------------------------------
+// 【Day 29 · 写接口防滥用】两道闸门，都在「进入业务逻辑之前」拦
+// 背景（BACKLOG 第 15 条）：/api/skills 的写接口对公网匿名开放，知道地址就能写，
+//   此前只有「技能名唯一」一层保护，没有任何频率限制 —— 一个脚本狂调就能把库塞满。
+// 为什么防线放在云函数、不放前端：前端校验能被绕过（curl 直接打接口），
+//   只有服务端校验才是真防线。这与 Day 18「防重复两层」的思路一致。
+// ---------------------------------------------------------------------------
+
+// ---- 闸门 ①：Origin 校验（只拦写请求）----
+// 放行规则：
+//   · 请求没带 Origin → 放行（curl/Postman 等非浏览器客户端不带 Origin）。
+//     为什么放行而不是拦：本期是课程作品，保留命令行自测能力（Day 17-22 的验收全靠 curl）；
+//     真正的刷量防护靠下面的限流，Origin 只负责挡「别的网站上的页面盗用接口」这一种情况。
+//   · Origin 在放行名单里 → 放行
+//   · 其他 Origin → 拦（1002）
+// 【重要】本闸门【只读不写】请求头 —— 绝不设置 Access-Control-Allow-Origin！
+//   跨域响应头由 CloudBase 网关统一处理，函数层碰它会把头叠成两个值，
+//   浏览器直接判跨域失败（Day 17 板块⑤ 踩过，见 sendJson 上方注释）。
+var ALLOWED_ORIGINS = [
+  "https://offer-coach-d0ge7jkzfc47e2079-1496995497.tcloudbaseapp.com", // 主站（静态托管）
+  "https://xingho-vibecoding.github.io",                                 // 备用站（GitHub Pages）
+  "http://127.0.0.1:8899"                                                // 本地调试
+];
+
+function isOriginAllowed(origin) {
+  // 只有「请求头完全不存在」才放行（curl/Postman 等非浏览器客户端不带 Origin）。
+  // 注意区分 undefined 与空字符串：空串是「带了头但值畸形」，属于可疑输入，一律拦。
+  if (origin === undefined || origin === null) return true;
+  if (origin === "") return false;
+  return ALLOWED_ORIGINS.indexOf(origin) !== -1;
+}
+
+// ---- 闸门 ②：滑动窗口限流（内存计数）----
+// 规则：同一个来源 IP，在窗口期内最多写 N 次，超出返回 1007。
+// 取值依据：人手动操作，正常 1 分钟能点 10 次就算很多了；给到 20 次留足余量。
+// 【诚实说明 · 这不是严格限流】云函数可能被平台重启、也可能起多个实例，
+//   每个实例各算各的内存计数。所以它是「尽力而为」的软限制：
+//   能挡住脚本连续狂刷，挡不住精心设计的分布式绕过。
+//   要严格限流得上 Redis/数据库计数，但会引入新依赖 + 消耗资源点（本期不做，见 BACKLOG 第 15 条）。
+var RATE_LIMIT_MAX = 20;                    // 窗口内最多写多少次
+var RATE_LIMIT_WINDOW_MS = 60 * 1000;       // 窗口长度：1 分钟
+var rateBuckets = Object.create(null);      // { ip: [时间戳, ...] }
+
+function takeClientIp(req) {
+  // 网关会把真实来源放在 x-forwarded-for，取第一个（最靠近客户端的那个）
+  var xff = req.headers["x-forwarded-for"];
+  if (xff) {
+    var first = String(xff).split(",")[0].trim();
+    if (first) return first;
+  }
+  var direct = req.socket && req.socket.remoteAddress;
+  return direct || "unknown";
+}
+
+/** 记一次写操作；返回 true=放行，false=超限 */
+function rateLimitAllow(ip) {
+  var now = Date.now();
+  var hits = rateBuckets[ip] || [];
+  // 滑动窗口：先把窗口外的旧记录清掉
+  var fresh = hits.filter(function (t) { return now - t < RATE_LIMIT_WINDOW_MS; });
+  if (fresh.length >= RATE_LIMIT_MAX) {
+    rateBuckets[ip] = fresh;                // 顺手更新，保留有效记录
+    return false;
+  }
+  fresh.push(now);
+  rateBuckets[ip] = fresh;
+  return true;
+}
+
+/** 写请求的统一前置检查：过了返回 null；没过返回该回给客户端的 payload */
+function guardWrite(req) {
+  var origin = req.headers["origin"];
+  if (!isOriginAllowed(origin)) {
+    console.log("[api/guard] 拒绝来源不明的写请求 origin=" + origin);
+    return { code: 1002, message: "这个请求来源不被允许", data: null };
+  }
+  var ip = takeClientIp(req);
+  if (!rateLimitAllow(ip)) {
+    console.log("[api/guard] 触发限流 ip=" + ip + " 窗口=" +
+      RATE_LIMIT_WINDOW_MS + "ms 上限=" + RATE_LIMIT_MAX);
+    return { code: 1007, message: "操作太频繁了，请等一会儿再试", data: null };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // GET /api/health —— 健康检查（与 Day 15 上线的结构保持完全一致）
 // ---------------------------------------------------------------------------
 function handleHealth(res) {
@@ -447,6 +532,25 @@ var server = http.createServer(function (req, res) {
   if (pathname === "/api/jobs") {
     return handleJobs(req, res, query);
   }
+
+  // 【Day 29】写接口的三道防线顺序（在进入任何业务逻辑之前）：
+  //   ① 先看是不是写方法（POST/PATCH/DELETE）→ 不是就走下面的 404
+  //   ② guardWrite：来源校验 + 限流 → 没过就返回，不进业务函数
+  //   ③ 才轮到各业务函数做参数校验（1001/1002/1004/1005/1006）
+  // 为什么统一在这里拦、而不是分散到三个 handleXxx 里：
+  //   三个写接口的防滥用规则完全一样，写一处不易漏；将来加限流阈值也只改一个地方。
+  var WRITE_METHODS = ["POST", "PATCH", "DELETE"];
+  var isWriteRequest = pathname === "/api/skills" && WRITE_METHODS.indexOf(req.method) !== -1;
+
+  if (pathname === "/api/skills" && isWriteRequest) {
+    var blocked = guardWrite(req);
+    if (blocked) {
+      console.log("[api/guard] 已拦截 " + req.method + " " + pathname +
+        " code=" + blocked.code);
+      return sendJson(res, 200, blocked);   // 沿用约定：业务错误 HTTP 仍为 200
+    }
+  }
+
   if (pathname === "/api/skills" && req.method === "POST") {
     return handleCreateSkill(req, res);
   }

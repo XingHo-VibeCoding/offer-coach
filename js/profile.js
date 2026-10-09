@@ -122,9 +122,12 @@
     // ---- 【Day 22】删除前二次确认：自绘弹窗（不用浏览器原生 confirm，样式可控、截图好看）----
     // 为什么要自绘：原生 confirm 样式由浏览器决定、无法说明「删的是什么」；
     // 自绘弹窗能把技能名明确写进去，让用户看清自己删的是哪一条。
+    // 【Day 29】加可选第三参数 opts，用于「网络断删不掉」时换个说法再问一次。
+    //   不传 opts 时，标题/正文/按钮全部沿用下面写死的默认文案 —— Day 22 的调用零影响。
     var lastFocus = null; // 记下弹窗打开前焦点在哪，关掉后还回去（键盘用户不迷失）
 
-    function askConfirm(skillName, onOk) {
+    function askConfirm(skillName, onOk, opts) {
+      opts = opts || {};
       lastFocus = document.activeElement;
 
       var mask = document.createElement("div");
@@ -137,12 +140,15 @@
 
       var title = document.createElement("h3");
       title.className = "confirm-title";
-      title.textContent = "确定删除这个技能吗？";
+      title.textContent = opts.title || "确定删除这个技能吗？";
 
       var text = document.createElement("p");
       text.className = "confirm-text";
       // 把技能名原样显示出来（加引号），避免用户看错行删错东西
-      text.textContent = "「" + skillName + "」将从你的自定义技能里移除。删除后不可恢复。";
+      // opts.text 里用 {name} 占位，替换成技能名
+      text.textContent = opts.text
+        ? opts.text.replace("{name}", skillName)
+        : "「" + skillName + "」将从你的自定义技能里移除。删除后不可恢复。";
 
       var row = document.createElement("div");
       row.className = "confirm-actions";
@@ -150,12 +156,12 @@
       var cancelBtn = document.createElement("button");
       cancelBtn.type = "button";
       cancelBtn.className = "btn-ghost";
-      cancelBtn.textContent = "取消";
+      cancelBtn.textContent = opts.cancelText || "取消";
 
       var okBtn = document.createElement("button");
       okBtn.type = "button";
       okBtn.className = "btn-danger";
-      okBtn.textContent = "确定删除";
+      okBtn.textContent = opts.okText || "确定删除";
 
       function close() {
         if (mask.parentNode) mask.parentNode.removeChild(mask);
@@ -245,14 +251,37 @@
           formMsg.className = "form-msg is-ok";
         })
         .catch(function (err) {
-          // 网络层失败：本地不动，避免出现「本地没了、云端还在」的不一致
+          // 【Day 29 甲方案】网络层失败：不再只是一句"删除失败"把用户堵死，
+          //   而是弹二次确认给一个明确出口：「要不要只从这台设备移除？」
+          // 为什么这样改（BACKLOG 第 12 条）：
+          //   原策略是「网络失败就不动本地」，好处是绝不会出现「本地没了、云端还在」的不一致，
+          //   坏处是网络一断用户就彻底删不掉（离线兜底站/断网时都会撞上）。
+          //   取舍：把选择权交给用户 —— 明说「云端那条可能还在」，由用户决定是否接受。
+          //   默认焦点仍在「取消」上，不鼓励误操作。
           // Day 23 板块③：err.message 是英文技术黑话（如 "Failed to fetch"），
-          // 用 data.js 的错误翻译层换成中文，别把英文甩给用户
+          //   用 data.js 的错误翻译层换成中文，别把英文甩给用户
           if (err && err.message) console.warn("[offer-coach] 删除请求失败，原文：", err.message);
           var why = (window.OCDescribeError) ? window.OCDescribeError(err) : "网络异常";
-          formMsg.textContent = "删除失败：" + why +
-            "。请检查网络后重试（本地清单未改动）";
+
+          formMsg.textContent = "删除请求没发出去：" + why;
           formMsg.className = "form-msg is-bad";
+
+          askConfirm(skillName, function () {
+            // 用户确认「只删本地」→ 摘掉本地记录 + 内存清单，并如实说明云端可能还有
+            window.OCStorage.removeCustom(skillName);
+            dropSkill(skillName);
+            refreshCustomList();
+            refreshMasteredList();
+            formMsg.textContent = "✓ 已从这台设备移除「" + skillName +
+              "」（云端连不上，如果之前同步过，那条记录可能还在云端）";
+            formMsg.className = "form-msg is-ok";
+          }, {
+            title: "云端暂时连不上",
+            text: "「{name}」的删除请求没有发出去（" + why +
+              "）。\n\n可以先只从这台设备移除。注意：如果这条技能之前同步到过云端，云端那份可能还在，换设备仍会看到。",
+            okText: "只从这台设备移除",
+            cancelText: "我再等等"
+          });
         });
     }
 
