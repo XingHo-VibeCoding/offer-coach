@@ -152,6 +152,7 @@ https://offer-coach-d0ge7jkzfc47e2079-1496995497.ap-shanghai.app.tcloudbase.com/
 ```
 
 实测结果：无参数返回 8 个岗位 + 37 项技能；`?limit=2` 返回 2 个岗位（技能仍全量返回）；`?limit=abc` 返回 `code:1002`。
+（注：37 为 Day 17 实测时的行数；Day 29 技能扩到 47，**部署后**此处应为 47。）
 
 **成功响应**：
 

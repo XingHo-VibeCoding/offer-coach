@@ -47,7 +47,7 @@ COMMENT ON COLUMN jobs.required_skills   IS '该岗位要求的技能名数组�
 CREATE TABLE skills (
   id            SERIAL  PRIMARY KEY,                                -- 内部编号，不对外暴露
   name          TEXT    NOT NULL UNIQUE,                            -- 技能名（业务唯一标识）
-  category      TEXT    NOT NULL CHECK (category IN ('语言','框架','工具','其他')),  -- 分类
+  category      TEXT    NOT NULL CHECK (category IN ('语言','框架','工具','其他','产品')),  -- 分类
   stage         TEXT    NOT NULL CHECK (stage IN ('基础','进阶','高级')),            -- 学习阶段（用于「建议学习顺序」排序）
   note          TEXT    NOT NULL,                                   -- 一句话说明（零基础能懂）
   aliases       TEXT[]  NOT NULL DEFAULT '{}',                      -- 别名数组（用于识别岗位描述里的不同说法）
@@ -58,7 +58,7 @@ CREATE TABLE skills (
 COMMENT ON TABLE  skills               IS '技能总表：网站认识的全部技能';
 COMMENT ON COLUMN skills.id            IS '内部编号（自增主键），不对外暴露';
 COMMENT ON COLUMN skills.name          IS '技能名，业务唯一标识；与 jobs.required_skills 中的值对应';
-COMMENT ON COLUMN skills.category      IS '分类，仅可取：语言 / 框架 / 工具 / 其他';
+COMMENT ON COLUMN skills.category      IS '分类，仅可取：语言 / 框架 / 工具 / 其他 / 产品（产品类 = 产品、设计、项目管理方向的工具）';
 COMMENT ON COLUMN skills.stage         IS '学习阶段，仅可取：基础 / 进阶 / 高级（差距分析据此排「建议学习顺序」）';
 COMMENT ON COLUMN skills.note          IS '一句话说明，零基础也能看懂';
 COMMENT ON COLUMN skills.aliases       IS '别名数组，用于从岗位描述里识别同一技能的不同写法（如 JavaScript 的别名 JS、ES6）';

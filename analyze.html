@@ -30,7 +30,7 @@
 
       <label class="field-label" for="jd-input">入口二：粘贴任意岗位描述（招聘软件上复制文字，或系统截图提字后粘贴）</label>
       <textarea id="jd-input" class="area-input" placeholder="把岗位描述（职位要求部分）粘贴到这里…"></textarea>
-      <p class="panel-tip">说明：本期用关键词匹配，只能识别「技能总表 + 你的自定义技能」里有的名字；描述里其他技能暂时认不出来（第 15 天接入 AI 能力后解决）。</p>
+      <p class="panel-tip">说明：本工具按「技能总表」（47 项常见技能 + 别名）逐词匹配，<strong>只能识别总表里收录过的名字</strong>。岗位描述里总表未收录的技能（如某些小众框架、工具）不会出现在结果里——这是当前匹配方式的已知局限。如果发现结果缺了你会/岗位要的技能，可以到「我的进度」页把它补充成自定义技能，再回来分析一次就能识别。</p>
 
       <button id="analyze-btn" class="btn-primary" type="button">开始分析</button>
       <p id="form-msg" class="form-msg"></p>

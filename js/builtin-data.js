@@ -5,9 +5,9 @@
 //   浏览器会拦掉它调的接口（CORS）。此时 js/data.js 会动态加载本文件兜底，
 //   让页面「可用但数据可能略旧」，而不是整页空白。
 //
-// 快照来源：GET /api/jobs（2026-10-05 抓取）
-// 收录：8 个岗位 / 37 条预设技能（不含用户自定义技能）
-// 刷新方式：接口数据有更新后，重跑 .workbuddy/tmp/bugfix/make-builtin.js 覆盖本文件
+// 快照来源：db/seed.sql 本地生成（2026-10-11）
+// 收录：8 个岗位 / 47 条预设技能（不含用户自定义技能）
+// 刷新方式：数据有更新后，重跑 .workbuddy/tmp/q-jd/make-builtin-local.js 覆盖本文件
 
 window.OC_BUILTIN_DATA = {
   "jobs": [
@@ -21,6 +21,7 @@ window.OC_BUILTIN_DATA = {
         "Vue 或 React",
         "TypeScript",
         "浏览器调试与性能",
+        "前端构建工具",
         "Git",
         "HTTP 基础"
       ]
@@ -36,7 +37,10 @@ window.OC_BUILTIN_DATA = {
         "SQL / MySQL",
         "API 设计（REST）",
         "Redis 缓存",
+        "消息队列",
+        "微服务架构",
         "Docker 容器",
+        "Nginx",
         "Linux 基础",
         "Git",
         "HTTP 基础"
@@ -52,6 +56,8 @@ window.OC_BUILTIN_DATA = {
         "SQL / MySQL",
         "接口测试（Postman 等）",
         "自动化测试（Selenium 等）",
+        "性能测试",
+        "CI/CD",
         "Linux 基础",
         "Git"
       ]
@@ -66,7 +72,8 @@ window.OC_BUILTIN_DATA = {
         "pandas 数据处理",
         "Excel 数据处理",
         "统计学基础",
-        "数据可视化（Tableau 等）"
+        "数据可视化（Tableau 等）",
+        "数据仓库"
       ]
     },
     {
@@ -79,6 +86,9 @@ window.OC_BUILTIN_DATA = {
         "Shell 脚本",
         "Docker 容器",
         "Kubernetes",
+        "Nginx",
+        "CI/CD",
+        "性能测试",
         "监控与日志（Prometheus 等）",
         "云平台基础"
       ]
@@ -137,7 +147,10 @@ window.OC_BUILTIN_DATA = {
         "CSS",
         "网页布局",
         "HTML5",
-        "CSS3"
+        "CSS3",
+        "响应式布局",
+        "移动端适配",
+        "H5"
       ],
       "relatedJobs": [
         "前端开发"
@@ -242,7 +255,9 @@ window.OC_BUILTIN_DATA = {
         "SQL",
         "MySQL",
         "数据库",
-        "结构化查询"
+        "结构化查询",
+        "SQL 优化",
+        "SQL语句"
       ],
       "relatedJobs": [
         "后端开发",
@@ -296,7 +311,10 @@ window.OC_BUILTIN_DATA = {
       "aliases": [
         "统计",
         "统计学",
-        "概率统计"
+        "概率统计",
+        "A/B 测试",
+        "AB 测试",
+        "AB测试"
       ],
       "relatedJobs": [
         "数据分析",
@@ -391,7 +409,9 @@ window.OC_BUILTIN_DATA = {
       "aliases": [
         "DevTools",
         "浏览器调试",
-        "性能优化"
+        "性能优化",
+        "渲染原理",
+        "前端性能"
       ],
       "relatedJobs": [
         "前端开发"
@@ -501,7 +521,8 @@ window.OC_BUILTIN_DATA = {
       "aliases": [
         "Postman",
         "接口测试",
-        "API 测试"
+        "API 测试",
+        "接口联调"
       ],
       "relatedJobs": [
         "测试工程师"
@@ -517,7 +538,9 @@ window.OC_BUILTIN_DATA = {
       "aliases": [
         "Selenium",
         "自动化测试",
-        "UI 自动化"
+        "UI 自动化",
+        "Pytest",
+        "pytest"
       ],
       "relatedJobs": [
         "测试工程师"
@@ -550,8 +573,11 @@ window.OC_BUILTIN_DATA = {
       "aliases": [
         "Tableau",
         "PowerBI",
+        "Power BI",
         "可视化",
-        "图表"
+        "图表",
+        "BI",
+        "看板"
       ],
       "relatedJobs": [
         "数据分析"
@@ -585,7 +611,11 @@ window.OC_BUILTIN_DATA = {
         "云服务",
         "阿里云",
         "腾讯云",
-        "AWS"
+        "AWS",
+        "公有云",
+        "云计算",
+        "Tomcat",
+        "中间件"
       ],
       "relatedJobs": [
         "运维工程师"
@@ -742,6 +772,188 @@ window.OC_BUILTIN_DATA = {
       ],
       "source": "预设",
       "id": 37
+    },
+    {
+      "name": "Nginx",
+      "category": "工具",
+      "stage": "进阶",
+      "note": "高性能的 Web 服务器，常用来做反向代理和负载均衡",
+      "aliases": [
+        "反向代理",
+        "Web 服务器",
+        "负载均衡",
+        "Nginx 配置"
+      ],
+      "relatedJobs": [
+        "后端开发",
+        "运维工程师"
+      ],
+      "source": "预设",
+      "id": 38
+    },
+    {
+      "name": "消息队列",
+      "category": "工具",
+      "stage": "进阶",
+      "note": "让程序之间「异步传话」的中间件，削峰填谷、解耦系统",
+      "aliases": [
+        "Kafka",
+        "RabbitMQ",
+        "MQ",
+        "消息中间件",
+        "RocketMQ"
+      ],
+      "relatedJobs": [
+        "后端开发"
+      ],
+      "source": "预设",
+      "id": 39
+    },
+    {
+      "name": "微服务架构",
+      "category": "框架",
+      "stage": "高级",
+      "note": "把一个大系统拆成多个小服务，各自独立开发部署",
+      "aliases": [
+        "Spring Cloud",
+        "微服务",
+        "服务治理",
+        "分布式",
+        "微服务架构"
+      ],
+      "relatedJobs": [
+        "后端开发"
+      ],
+      "source": "预设",
+      "id": 40
+    },
+    {
+      "name": "CI/CD",
+      "category": "工具",
+      "stage": "进阶",
+      "note": "代码提交后自动构建、测试、部署的流水线",
+      "aliases": [
+        "Jenkins",
+        "GitLab CI",
+        "持续集成",
+        "持续部署",
+        "流水线",
+        "CICD"
+      ],
+      "relatedJobs": [
+        "运维工程师",
+        "测试工程师"
+      ],
+      "source": "预设",
+      "id": 41
+    },
+    {
+      "name": "前端构建工具",
+      "category": "工具",
+      "stage": "进阶",
+      "note": "把源码打包压缩成浏览器能高效运行的文件",
+      "aliases": [
+        "Webpack",
+        "Vite",
+        "构建工具",
+        "前端工程化",
+        "打包工具",
+        "Rollup"
+      ],
+      "relatedJobs": [
+        "前端开发"
+      ],
+      "source": "预设",
+      "id": 42
+    },
+    {
+      "name": "性能测试",
+      "category": "工具",
+      "stage": "进阶",
+      "note": "模拟大量用户同时访问，看系统扛不扛得住",
+      "aliases": [
+        "JMeter",
+        "压力测试",
+        "性能测试",
+        "LoadRunner",
+        "QPS",
+        "并发测试"
+      ],
+      "relatedJobs": [
+        "测试工程师",
+        "运维工程师"
+      ],
+      "source": "预设",
+      "id": 43
+    },
+    {
+      "name": "数据仓库",
+      "category": "工具",
+      "stage": "高级",
+      "note": "专门存海量历史数据、供分析用的数据库",
+      "aliases": [
+        "Hive",
+        "数据仓库",
+        "数仓",
+        "ETL",
+        "数据建模",
+        "离线数仓"
+      ],
+      "relatedJobs": [
+        "数据分析"
+      ],
+      "source": "预设",
+      "id": 44
+    },
+    {
+      "name": "原型设计工具",
+      "category": "产品",
+      "stage": "基础",
+      "note": "把产品想法画成可点击原型图的工具",
+      "aliases": [
+        "Axure",
+        "墨刀",
+        "原型图",
+        "原型设计",
+        "线框图"
+      ],
+      "relatedJobs": [],
+      "source": "预设",
+      "id": 45
+    },
+    {
+      "name": "设计协作工具",
+      "category": "产品",
+      "stage": "基础",
+      "note": "团队一起做界面设计、标注切图的在线工具",
+      "aliases": [
+        "Figma",
+        "Sketch",
+        "蓝湖",
+        "设计稿",
+        "切图"
+      ],
+      "relatedJobs": [
+        "前端开发"
+      ],
+      "source": "预设",
+      "id": 46
+    },
+    {
+      "name": "项目管理工具",
+      "category": "产品",
+      "stage": "基础",
+      "note": "跟踪任务进度、协作排期的工具",
+      "aliases": [
+        "Jira",
+        "禅道",
+        "TAPD",
+        "项目管理",
+        "需求管理"
+      ],
+      "relatedJobs": [],
+      "source": "预设",
+      "id": 47
     }
   ]
 };

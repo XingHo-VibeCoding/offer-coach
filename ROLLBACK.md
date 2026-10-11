@@ -108,7 +108,7 @@ curl -s -H "Cache-Control: no-cache" https://<静态域名>/index.html | grep -o
 # 1) 导出（在项目根目录）
 node db/export-data.js
 #    → 生成 db/backup/YYYY-MM-DD-jobs-skills.sql
-#    → 确认输出里的行数对不对（当前应为 jobs 8 行、skills 37 行）
+#    → 确认输出里的行数对不对（当前应为 jobs 8 行、skills 47 行；Day 29 前是 37 行）
 
 # 2) 恢复（⚠️ 会覆盖线上数据，见下方「必须知道的限制」）
 tcb db execute -e offer-coach-d0ge7jkzfc47e2079 \
